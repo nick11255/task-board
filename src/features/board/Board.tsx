@@ -9,9 +9,9 @@ import { Button } from '../../components/ui/Button'
 import { Column } from './Column'
 import { COLUMNS } from './columns'
 import { TaskCard } from './TaskCard'
-import type { Board as BoardState } from './useBoard'
+import type { Board as BoardState, NewTask } from './useBoard'
 import { useBoardDnd } from './useBoardDnd'
-import type { TaskStatus } from '../tasks/types'
+import type { Task, TaskStatus } from '../tasks/types'
 
 const SKELETON_COUNTS = [3, 2, 1, 2] as const
 
@@ -27,9 +27,13 @@ type BoardProps = {
   onMoveTo: (id: string, status: TaskStatus) => void
   /** Mobile shows one column at a time (picked with status tabs). */
   singleColumn: TaskStatus | null
+  /** Search/filter predicate; null = show everything. */
+  filter: ((task: Task) => boolean) | null
+  /** Create (wrapped by the screen so it can flag tasks hidden by filters). */
+  createTask: (input: NewTask) => Promise<void>
 }
 
-export function Board({ board, onOpenTask, onMoveTo, singleColumn }: BoardProps) {
+export function Board({ board, onOpenTask, onMoveTo, singleColumn, filter, createTask }: BoardProps) {
   const dnd = useBoardDnd(board)
   const visible = singleColumn ? COLUMNS.filter((c) => c.status === singleColumn) : COLUMNS
 
@@ -56,12 +60,15 @@ export function Board({ board, onOpenTask, onMoveTo, singleColumn }: BoardProps)
                 column={column}
                 layout={singleColumn ? 'single' : 'board'}
                 phase={board.phase}
-                tasks={dnd.columns[column.status]}
+                // Hidden cards stay in the drag model; positions are computed
+                // against the full column, so order holds when filters clear.
+                tasks={filter ? dnd.columns[column.status].filter(filter) : dnd.columns[column.status]}
+                filtering={filter !== null}
                 pendingIds={board.pendingIds}
                 skeletonCount={SKELETON_COUNTS[COLUMNS.indexOf(column)] ?? 2}
                 isDragging={dnd.activeTask !== null}
                 isDropTarget={dnd.overColumn === column.status}
-                onCreate={(title) => board.createTask({ status: column.status, title })}
+                onCreate={(title) => createTask({ status: column.status, title })}
                 onOpenTask={onOpenTask}
                 onMoveTo={onMoveTo}
               />

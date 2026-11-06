@@ -25,6 +25,8 @@ type ColumnProps = {
   isDropTarget: boolean
   /** 'single' = the only column on screen (mobile tabs): full width, no header. */
   layout: 'board' | 'single'
+  /** Filters are on: an empty column means "no matches", not "no tasks". */
+  filtering: boolean
   onCreate: (title: string) => Promise<void>
   onOpenTask: (id: string) => void
   onMoveTo: (id: string, status: TaskStatus) => void
@@ -41,6 +43,7 @@ export function Column({
   isDragging,
   isDropTarget,
   layout,
+  filtering,
   onCreate,
   onOpenTask,
   onMoveTo,
@@ -138,7 +141,11 @@ export function Column({
           </SortableContext>
         )}
 
-        {isEmpty && !composer.open &&
+        {isEmpty && !composer.open && filtering && !isDragging && (
+          <p className="px-2 py-2 text-sm text-subtle">No matches</p>
+        )}
+
+        {isEmpty && !composer.open && (!filtering || isDragging) &&
           (single && !isDragging ? (
             <TabEmpty column={column} onAdd={openComposer} />
           ) : (

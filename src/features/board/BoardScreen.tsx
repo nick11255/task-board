@@ -1,4 +1,4 @@
-import { useMemo, useState, type CSSProperties } from 'react'
+import { useCallback, useMemo, useState, type CSSProperties } from 'react'
 import { toast, Toaster } from 'sonner'
 import { AppHeader } from '../../components/AppHeader'
 import { ThemeToggle } from '../../components/ThemeToggle'
@@ -9,13 +9,16 @@ import { MOBILE_QUERY, useMediaQuery } from '../../lib/useMediaQuery'
 import { useToday } from '../../lib/useToday'
 import { NewTaskDialog } from '../tasks/NewTaskDialog'
 import { TaskPanel } from '../tasks/TaskPanel'
-import { TASK_STATUSES, type TaskStatus } from '../tasks/types'
+import { TASK_STATUSES, type Task, type TaskStatus } from '../tasks/types'
 import { Board } from './Board'
+import { FilterBar } from './FilterBar'
+import { matchesFilters } from './filters'
 import { COLUMNS } from './columns'
 import { MobileTabs } from './MobileTabs'
 import { computeStats } from './stats'
 import { StatsBar, StatsLine } from './StatsBar'
-import { useBoard } from './useBoard'
+import { useBoard, type NewTask } from './useBoard'
+import { useFilters } from './useFilters'
 
 export function BoardScreen({ userId }: { userId: string }) {
   const board = useBoard(userId)
@@ -28,11 +31,38 @@ export function BoardScreen({ userId }: { userId: string }) {
   const openTask = openTaskId ? (board.tasks.find((t) => t.id === openTaskId) ?? null) : null
 
   const ready = board.phase === 'ready'
-  const counts = ready
-    ? (Object.fromEntries(TASK_STATUSES.map((s) => [s, board.columns[s].length])) as Record<TaskStatus, number>)
-    : null
   const today = useToday()
+  // Stats always describe the whole board; filters only change what's shown.
   const stats = useMemo(() => (ready ? computeStats(board.tasks, today) : null), [ready, board.tasks, today])
+
+  const filtersApi = useFilters()
+  const { filters, active: filtering } = filtersApi
+  const matches = useCallback(
+    (task: Pick<Task, 'title' | 'priority' | 'due_date' | 'status'>) => matchesFilters(task, filters, today),
+    [filters, today],
+  )
+  const filter = filtering ? matches : null
+
+  const counts = ready
+    ? (Object.fromEntries(
+        TASK_STATUSES.map((s) => [s, filter ? board.columns[s].filter(filter).length : board.columns[s].length]),
+      ) as Record<TaskStatus, number>)
+    : null
+  const shown = counts ? Object.values(counts).reduce((a, b) => a + b, 0) : 0
+  const filterCounts = ready ? { shown, total: board.tasks.length } : null
+  const noMatches = ready && filtering && shown === 0 && board.tasks.length > 0
+
+  // A task created while filtering may not match: say so instead of letting it vanish.
+  const createTask = async (input: NewTask) => {
+    await board.createTask(input)
+    const candidate = { priority: 'normal' as const, due_date: null, ...input }
+    if (filtering && !matches(candidate)) {
+      const label = COLUMNS.find((c) => c.status === input.status)?.label ?? input.status
+      toast(`Added to ${label}, hidden by your filters`, {
+        action: { label: 'Clear filters', onClick: filtersApi.clear },
+      })
+    }
+  }
 
   // "Move to…" from a card menu. On mobile the card leaves the visible tab,
   // so confirm where it went and offer a jump there.
@@ -59,6 +89,7 @@ export function BoardScreen({ userId }: { userId: string }) {
         {isMobile ? (
           <div className="flex flex-col gap-3 px-4 pt-3">
             {board.phase !== 'error' && <StatsLine stats={stats} />}
+            <FilterBar api={filtersApi} counts={filterCounts} layout="mobile" />
             <MobileTabs active={mobileTab} counts={counts} onChange={setMobileTab} />
           </div>
         ) : (
@@ -77,6 +108,22 @@ export function BoardScreen({ userId }: { userId: string }) {
             <Button variant="primary" leadingIcon={<PlusIcon />} onClick={() => setNewTaskOpen(true)} disabled={!ready}>
               New task
             </Button>
+            <div className="order-last w-full">
+              <FilterBar api={filtersApi} counts={filterCounts} layout="desktop" />
+            </div>
+          </div>
+        )}
+
+        {noMatches && (
+          <div role="status" className="mx-4 mb-3 flex items-center gap-3 rounded-lg border border-border bg-surface px-4 py-3 text-sm sm:mx-6">
+            <span className="text-text">No tasks match your filters.</span>
+            <button
+              type="button"
+              onClick={filtersApi.clear}
+              className="ml-auto text-sm font-medium text-accent underline-offset-2 hover:underline"
+            >
+              Clear filters
+            </button>
           </div>
         )}
 
@@ -85,6 +132,8 @@ export function BoardScreen({ userId }: { userId: string }) {
           onOpenTask={setOpenTaskId}
           onMoveTo={moveTo}
           singleColumn={isMobile ? mobileTab : null}
+          filter={filter}
+          createTask={createTask}
         />
       </main>
 
@@ -102,7 +151,7 @@ export function BoardScreen({ userId }: { userId: string }) {
       <NewTaskDialog
         open={newTaskOpen}
         onClose={() => setNewTaskOpen(false)}
-        onCreate={board.createTask}
+        onCreate={createTask}
         defaultStatus={isMobile ? mobileTab : 'todo'}
       />
 

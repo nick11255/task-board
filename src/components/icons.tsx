@@ -89,6 +89,15 @@ export function ChevronDownIcon(props: IconProps) {
   )
 }
 
+export function SearchIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <circle cx="7" cy="7" r="4.25" />
+      <path d="M10.25 10.25L13.5 13.5" />
+    </Icon>
+  )
+}
+
 export function SunIcon(props: IconProps) {
   return (
     <Icon {...props}>
