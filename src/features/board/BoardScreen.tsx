@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'r
 import { toast, Toaster } from 'sonner'
 import { AmbientBackground } from '../../components/AmbientBackground'
 import { AppHeader } from '../../components/AppHeader'
+import { BoardTitleText, DEFAULT_BOARD_NAME } from '../../components/BoardTitle'
 import { ThemeToggle } from '../../components/ThemeToggle'
 import { LockIcon, MoreIcon, PlusIcon, TrashIcon, UserIcon } from '../../components/icons'
 import { Menu } from '../../components/ui/Menu'
@@ -147,7 +148,7 @@ export function BoardScreen({ userId }: { userId: string }) {
     <div className="flex h-dvh flex-col">
       <AppHeader
         userId={userId}
-        mobileTitle="My board"
+        mobileTitle={DEFAULT_BOARD_NAME}
         actions={
           <>
             <button
@@ -197,7 +198,7 @@ export function BoardScreen({ userId }: { userId: string }) {
             <div className="flex flex-wrap items-end gap-x-6 gap-y-4 px-6 pt-6 pb-4">
               <div className="mr-auto min-w-0">
                 <h1 className="font-display text-display text-text">
-                  My <em className="italic">board</em>
+                  <BoardTitleText name={DEFAULT_BOARD_NAME} />
                 </h1>
                 <p className="mt-1 flex items-center gap-1 text-sm text-muted">
                   <LockIcon size={12} className="text-subtle" />

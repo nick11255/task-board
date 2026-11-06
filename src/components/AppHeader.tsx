@@ -13,7 +13,7 @@ export function AppHeader({ userId, mobileTitle, actions }: AppHeaderProps) {
   return (
     <header className="flex h-12 shrink-0 items-center gap-2 border-b border-border px-4 sm:h-14 sm:px-6">
       <LogoMark size={22} />
-      <span className="text-base font-semibold tracking-tight text-text max-sm:hidden">Task Board</span>
+      <span className="text-base font-semibold tracking-tight text-text max-sm:hidden">Playbook</span>
       <span className="text-base font-semibold tracking-tight text-text sm:hidden">{mobileTitle}</span>
       <div className="ml-auto flex items-center gap-2">
         {actions}

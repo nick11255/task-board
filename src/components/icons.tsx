@@ -1,4 +1,4 @@
-import type { ComponentProps } from 'react'
+import { useId, type ComponentProps } from 'react'
 
 type IconProps = ComponentProps<'svg'> & { size?: number }
 
@@ -176,14 +176,47 @@ export function PriorityIcon({
   )
 }
 
-/** Brand mark: three stacked bars, a nod to board columns. */
-export function LogoMark({ size = 24 }: { size?: number }) {
+/**
+ * Playbook mark (variant A, "chevron stack"): two rounded cards fanned into a
+ * forward arrow, in the shell gradient. The back chevron is 55% opaque, which
+ * is the lowest that still reads at 16px. Keep in sync with public/favicon.svg.
+ */
+export function LogoMark({ size = 24, title }: { size?: number; title?: string }) {
+  // Unique gradient id per instance: two marks on one page must not share (and break) an id.
+  const id = useId()
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden>
-      <rect width="24" height="24" rx="6" fill="var(--color-accent)" />
-      <rect x="6" y="6" width="3" height="12" rx="1.5" fill="var(--color-on-accent)" />
-      <rect x="10.5" y="6" width="3" height="8" rx="1.5" fill="var(--color-on-accent)" opacity="0.8" />
-      <rect x="15" y="6" width="3" height="5" rx="1.5" fill="var(--color-on-accent)" opacity="0.6" />
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 32 32"
+      role={title ? 'img' : undefined}
+      aria-label={title}
+      aria-hidden={title ? undefined : true}
+    >
+      <defs>
+        <linearGradient id={id} gradientUnits="userSpaceOnUse" x1="3" y1="4" x2="29" y2="28">
+          <stop offset="0" stopColor="#4f46e5" />
+          <stop offset="0.5" stopColor="#7c3aed" />
+          <stop offset="1" stopColor="#db2777" />
+        </linearGradient>
+      </defs>
+      <path
+        d="M6 8.5 L13.5 16 L6 23.5"
+        fill="none"
+        stroke={`url(#${id})`}
+        strokeWidth="5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        opacity="0.55"
+      />
+      <path
+        d="M15 7 L24 16 L15 25"
+        fill="none"
+        stroke={`url(#${id})`}
+        strokeWidth="6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   )
 }
