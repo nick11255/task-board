@@ -1,9 +1,9 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import type { ComponentProps, SyntheticEvent } from 'react'
-import { CalendarIcon, MoreIcon, TextIcon } from '../../components/icons'
+import { MoreIcon, TextIcon } from '../../components/icons'
 import { cx } from '../../lib/cx'
-import { formatShortDate } from '../../lib/dates'
+import { DueBadge } from '../tasks/DueBadge'
 import { TaskPriorityIcon } from '../tasks/TaskFields'
 import { PRIORITY_LABEL, type Task, type TaskStatus } from '../tasks/types'
 import { COLUMNS } from './columns'
@@ -46,7 +46,7 @@ function TaskMeta({ task }: { task: Task }) {
   if (!showPriority && !task.due_date && !task.description) return null
 
   return (
-    <div className="mt-2 flex items-center gap-3 text-xs text-muted">
+    <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
       {showPriority && (
         <span className="flex items-center gap-1" title={`${PRIORITY_LABEL[task.priority]} priority`}>
           <TaskPriorityIcon priority={task.priority} />
@@ -55,13 +55,7 @@ function TaskMeta({ task }: { task: Task }) {
           </span>
         </span>
       )}
-      {task.due_date && (
-        <span className="flex items-center gap-1 tabular-nums">
-          <CalendarIcon size={12} />
-          <span className="sr-only">Due</span>
-          {formatShortDate(task.due_date)}
-        </span>
-      )}
+      <DueBadge dueDate={task.due_date} status={task.status} />
       {task.description && (
         <span className="flex items-center" title="Has a description">
           <TextIcon size={12} />

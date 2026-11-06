@@ -12,6 +12,7 @@ import { describeError } from '../../lib/errors'
 import { COLUMNS } from '../board/columns'
 import { StatusIcon } from '../board/StatusIcon'
 import type { TaskEdit } from '../board/useBoard'
+import { DueHint } from './DueBadge'
 import { DueDateInput, PriorityPicker, StatusSelect } from './TaskFields'
 import { DESCRIPTION_MAX_LENGTH, TITLE_MAX_LENGTH, type Task, type TaskStatus } from './types'
 import { normalizeDescription, validateTaskFields } from './validation'
@@ -218,6 +219,7 @@ function PanelContent({ task, onClose, onUpdate, onMove, onDelete, flushRef }: P
               value={task.due_date ?? ''}
               onChange={(value) => save({ due_date: value || null })}
             />
+            <DueHint dueDate={task.due_date} status={task.status} />
           </dd>
         </dl>
 
