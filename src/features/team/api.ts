@@ -35,6 +35,13 @@ export async function deleteMember(id: string): Promise<void> {
   if (error) throw error
 }
 
+/** Delete the caller's whole roster (their assignments cascade). Same safeguards as deleteAllTasks. */
+export async function deleteAllMembers(userId: string): Promise<number> {
+  const { data, error } = await supabase.from('team_members').delete().eq('user_id', userId).select('id')
+  if (error) throw error
+  return data.length
+}
+
 export async function fetchAssignees(): Promise<TaskAssignee[]> {
   const { data, error } = await supabase.from('task_assignees').select(ASSIGNEE_COLUMNS)
   if (error) throw error

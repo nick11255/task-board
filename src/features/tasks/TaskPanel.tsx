@@ -172,7 +172,7 @@ function PanelContent({
               <Spinner size={12} /> Saving…
             </span>
           )}
-          <IconButton label="Close details" icon={<CloseIcon />} onClick={onClose} autoFocus />
+          <IconButton label="Close details" icon={<CloseIcon />} onClick={onClose} data-autofocus />
         </div>
       </header>
 
@@ -290,10 +290,11 @@ function PanelContent({
         {confirmingDelete ? (
           <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Confirm delete">
             <p className="mr-auto text-sm text-text">Delete this task? This can't be undone.</p>
-            <Button variant="ghost" size="sm" onClick={() => setConfirmingDelete(false)} disabled={deleting}>
+            {/* Focus the safe choice, same as the Clear board dialog. */}
+            <Button variant="ghost" size="sm" onClick={() => setConfirmingDelete(false)} disabled={deleting} autoFocus>
               Cancel
             </Button>
-            <Button variant="danger" size="sm" onClick={confirmDelete} loading={deleting} autoFocus>
+            <Button variant="danger" size="sm" onClick={confirmDelete} loading={deleting}>
               Delete task
             </Button>
           </div>

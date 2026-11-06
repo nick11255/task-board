@@ -1,6 +1,15 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { describeError } from '../../lib/errors'
-import { deleteAssignee, deleteMember, fetchAssignees, fetchMembers, insertAssignees, insertMembers, updateMember } from './api'
+import {
+  deleteAllMembers,
+  deleteAssignee,
+  deleteMember,
+  fetchAssignees,
+  fetchMembers,
+  insertAssignees,
+  insertMembers,
+  updateMember,
+} from './api'
 import { nextColor } from './colors'
 import type { MemberColor, TaskAssignee, TeamMember } from './types'
 
@@ -14,7 +23,7 @@ const key = (taskId: string, memberId: string) => `${taskId}:${memberId}`
  * Assigning/unassigning is optimistic with a precise revert; member edits
  * that are destructive (delete) wait for the server.
  */
-export function useTeam() {
+export function useTeam(userId: string) {
   const [phase, setPhase] = useState<TeamPhase>('loading')
   const [error, setError] = useState<string | null>(null)
   const [members, setMembers] = useState<TeamMember[]>([])
@@ -148,6 +157,17 @@ export function useTeam() {
     setAssignments((prev) => prev.filter((a) => a.member_id !== id))
   }, [])
 
+  /** After the board is cleared: assignments went with the tasks (DB cascade). */
+  const forgetAssignments = useCallback(() => setAssignments([]), [])
+
+  /** Delete the whole roster (not optimistic). */
+  const clearMembers = useCallback(async () => {
+    const count = await deleteAllMembers(userId)
+    setMembers([])
+    setAssignments([])
+    return count
+  }, [userId])
+
   /** Sample team for the first-run board: creates missing members, assigns by task title. */
   const seedSample = useCallback(
     async (tasks: readonly { id: string; title: string }[], plan: { name: string; color: MemberColor; titles: string[] }[]) => {
@@ -184,6 +204,8 @@ export function useTeam() {
     editMember,
     removeMember,
     seedSample,
+    forgetAssignments,
+    clearMembers,
   }
 }
 

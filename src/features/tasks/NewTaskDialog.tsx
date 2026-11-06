@@ -109,7 +109,7 @@ function NewTaskForm({
         <Field label="Title" htmlFor="new-task-title-input" error={errors.title}>
           <input
             id="new-task-title-input"
-            autoFocus
+            data-autofocus
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             maxLength={TITLE_MAX_LENGTH + 20 /* allow pasting, then explain the limit */}

@@ -39,6 +39,9 @@
   /* Semantic (status + alerts only) */
   --color-danger: light-dark(#b91c1c, #f87171);
   --color-danger-soft: light-dark(#fef2f2, #2a1617);
+  /* Filled destructive buttons: same deep red in both themes so white text stays ≥4.5:1. */
+  --color-danger-solid: #b91c1c;
+  --color-danger-solid-hover: #991b1b;
   --color-warning: light-dark(#b45309, #fbbf24);
   --color-warning-soft: light-dark(#fffbeb, #2a2112);
   --color-success: light-dark(#16a34a, #4ade80);

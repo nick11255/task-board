@@ -3,7 +3,8 @@ import { toast, Toaster } from 'sonner'
 import { AmbientBackground } from '../../components/AmbientBackground'
 import { AppHeader } from '../../components/AppHeader'
 import { ThemeToggle } from '../../components/ThemeToggle'
-import { LockIcon, PlusIcon, UserIcon } from '../../components/icons'
+import { LockIcon, MoreIcon, PlusIcon, TrashIcon, UserIcon } from '../../components/icons'
+import { Menu } from '../../components/ui/Menu'
 import { Button } from '../../components/ui/Button'
 import { describeError } from '../../lib/errors'
 import { useTheme } from '../../lib/theme'
@@ -16,6 +17,7 @@ import { AvatarStack } from '../team/Avatar'
 import { TeamDialog } from '../team/TeamDialog'
 import { useTeam } from '../team/useTeam'
 import { Board } from './Board'
+import { ClearBoardDialog } from './ClearBoardDialog'
 import { EmptyBoard } from './EmptyBoard'
 import { FilterBar } from './FilterBar'
 import { matchesFilters, type FilterableTask } from './filters'
@@ -30,8 +32,9 @@ import { useFilters } from './useFilters'
 export function BoardScreen({ userId }: { userId: string }) {
   const board = useBoard(userId)
   // Team data is separate: if it fails to load, tasks still work (cards just show no avatars).
-  const team = useTeam()
+  const team = useTeam(userId)
   const [teamOpen, setTeamOpen] = useState(false)
+  const [clearOpen, setClearOpen] = useState(false)
   const isMobile = useMediaQuery(MOBILE_QUERY)
   const theme = useTheme()
   const [newTaskOpen, setNewTaskOpen] = useState(false)
@@ -103,6 +106,27 @@ export function BoardScreen({ userId }: { userId: string }) {
     }
   }
 
+  // Clear board: tasks first (assignments + activity cascade in the DB), then the team if asked.
+  // A failure deleting tasks rejects (the dialog shows it); a failure on the team step after
+  // the tasks are gone is reported separately, so the dialog never claims nothing happened.
+  const clearBoard = async (alsoTeam: boolean) => {
+    const deleted = await board.clearBoard()
+    team.forgetAssignments()
+    setOpenTaskId(null)
+    setMobileTab('todo')
+    filtersApi.clear()
+    let membersRemoved = 0
+    if (alsoTeam) {
+      try {
+        membersRemoved = await team.clearMembers()
+      } catch (err) {
+        toast.error("Board cleared, but team members couldn't be removed", { description: describeError(err) })
+      }
+    }
+    const what = `${deleted} ${deleted === 1 ? 'task' : 'tasks'}${membersRemoved ? ` and ${membersRemoved} ${membersRemoved === 1 ? 'person' : 'people'}` : ''}`
+    toast.success(`Cleared ${what}`)
+  }
+
   const toggleAssignee = (taskId: string, memberId: string, selected: boolean) =>
     selected ? team.assign(taskId, memberId) : team.unassign(taskId, memberId)
 
@@ -139,6 +163,19 @@ export function BoardScreen({ userId }: { userId: string }) {
               )}
               <span className="max-sm:hidden">Team</span>
             </button>
+            <Menu
+              label="Board actions"
+              trigger={<MoreIcon />}
+              items={[
+                {
+                  label: 'Clear board…',
+                  icon: <TrashIcon size={14} />,
+                  tone: 'danger',
+                  disabled: !ready || (board.tasks.length === 0 && team.members.length === 0),
+                  onSelect: () => setClearOpen(true),
+                },
+              ]}
+            />
             <ThemeToggle preference={theme.preference} onCycle={theme.cycle} />
           </>
         }
@@ -249,6 +286,14 @@ export function BoardScreen({ userId }: { userId: string }) {
       />
 
       <TeamDialog open={teamOpen} onClose={() => setTeamOpen(false)} team={team} />
+
+      <ClearBoardDialog
+        open={clearOpen}
+        onClose={() => setClearOpen(false)}
+        taskCount={board.tasks.length}
+        memberCount={team.members.length}
+        onConfirm={clearBoard}
+      />
 
       <Toaster
         position={isMobile ? 'bottom-center' : 'bottom-right'}

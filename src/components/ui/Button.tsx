@@ -24,7 +24,7 @@ const variants: Record<Variant, string> = {
   secondary:
     'border border-border bg-surface text-text shadow-xs hover:border-border-strong hover:bg-column',
   ghost: 'text-muted hover:bg-column hover:text-text',
-  danger: 'bg-danger text-on-accent shadow-xs hover:opacity-90',
+  danger: 'bg-danger-solid text-on-accent shadow-xs hover:bg-danger-solid-hover',
 }
 
 const sizes: Record<Size, string> = {

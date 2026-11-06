@@ -33,7 +33,11 @@ export function Dialog({ open, onClose, variant = 'modal', labelledBy, children 
   useEffect(() => {
     const dialog = ref.current
     if (!dialog) return
-    if (open && !dialog.open) dialog.showModal()
+    if (open && !dialog.open) {
+      dialog.showModal()
+      // showModal() focuses the first focusable element; honor an explicit choice instead.
+      dialog.querySelector<HTMLElement>('[data-autofocus]')?.focus()
+    }
     if (!open && dialog.open) dialog.close()
   }, [open])
 

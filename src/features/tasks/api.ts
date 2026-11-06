@@ -39,6 +39,18 @@ export async function deleteTask(id: string): Promise<void> {
   if (error) throw error
 }
 
+/**
+ * Delete ALL of the caller's tasks (assignees and activity cascade in the DB).
+ * RLS already limits this to auth.uid()'s rows; the explicit user_id filter
+ * is belt-and-braces for a bulk destructive call (and PostgREST wants a filter).
+ * Resolves with how many tasks were deleted.
+ */
+export async function deleteAllTasks(userId: string): Promise<number> {
+  const { data, error } = await supabase.from('tasks').delete().eq('user_id', userId).select('id')
+  if (error) throw error
+  return data.length
+}
+
 /** Several tasks in one request (one transaction: all or nothing). */
 export async function insertTasks(rows: TaskInsert[]): Promise<Task[]> {
   const { data, error } = await supabase.from('tasks').insert(rows).select(TASK_COLUMNS)

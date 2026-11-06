@@ -1,7 +1,14 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { describeError } from '../../lib/errors'
-import { deleteTask as apiDeleteTask, fetchTasks, insertTask, insertTasks, updateTask as apiUpdateTask } from '../tasks/api'
+import {
+  deleteAllTasks,
+  deleteTask as apiDeleteTask,
+  fetchTasks,
+  insertTask,
+  insertTasks,
+  updateTask as apiUpdateTask,
+} from '../tasks/api'
 import { planMove, topPosition } from '../tasks/position'
 import type { Task, TaskPriority, TaskStatus, TaskUpdate } from '../tasks/types'
 import { groupTasks } from './groupTasks'
@@ -45,6 +52,8 @@ export type Board = {
   moveTask: (id: string, status: TaskStatus, index: number, options?: { notify?: boolean }) => Promise<void>
   /** First-run helper: inserts a realistic sample board in one request; resolves with the saved tasks. */
   loadSampleBoard: () => Promise<Task[]>
+  /** Deletes every task this guest owns (not optimistic). Resolves with the count. */
+  clearBoard: () => Promise<number>
 }
 
 const shorten = (title: string) => (title.length > 48 ? `${title.slice(0, 47).trimEnd()}…` : title)
@@ -244,7 +253,15 @@ export function useBoard(userId: string): Board {
     return saved
   }, [])
 
+  const clearBoard = useCallback(async () => {
+    mutationVersion.current++
+    const count = await deleteAllTasks(userId)
+    setTasks([])
+    setPendingIds(new Set())
+    return count
+  }, [userId])
+
   const columns = useMemo(() => groupTasks(tasks), [tasks])
 
-  return { phase, error, tasks, columns, pendingIds, reload, createTask, updateTask, deleteTask, moveTask, loadSampleBoard }
+  return { phase, error, tasks, columns, pendingIds, reload, createTask, updateTask, deleteTask, moveTask, loadSampleBoard, clearBoard }
 }
