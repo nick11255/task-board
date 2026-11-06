@@ -11,6 +11,7 @@ import { NewTaskDialog } from '../tasks/NewTaskDialog'
 import { TaskPanel } from '../tasks/TaskPanel'
 import { TASK_STATUSES, type Task, type TaskStatus } from '../tasks/types'
 import { Board } from './Board'
+import { EmptyBoard } from './EmptyBoard'
 import { FilterBar } from './FilterBar'
 import { matchesFilters } from './filters'
 import { COLUMNS } from './columns'
@@ -51,6 +52,8 @@ export function BoardScreen({ userId }: { userId: string }) {
   const shown = counts ? Object.values(counts).reduce((a, b) => a + b, 0) : 0
   const filterCounts = ready ? { shown, total: board.tasks.length } : null
   const noMatches = ready && filtering && shown === 0 && board.tasks.length > 0
+  // Nothing to search on an empty board (but keep it if a shared link set filters, so they can be cleared).
+  const showFilters = !ready || board.tasks.length > 0 || filtering
 
   // A task created while filtering may not match: say so instead of letting it vanish.
   const createTask = async (input: NewTask) => {
@@ -89,7 +92,7 @@ export function BoardScreen({ userId }: { userId: string }) {
         {isMobile ? (
           <div className="flex flex-col gap-3 px-4 pt-3">
             {board.phase !== 'error' && <StatsLine stats={stats} />}
-            <FilterBar api={filtersApi} counts={filterCounts} layout="mobile" />
+            {showFilters && <FilterBar api={filtersApi} counts={filterCounts} layout="mobile" />}
             <MobileTabs active={mobileTab} counts={counts} onChange={setMobileTab} />
           </div>
         ) : (
@@ -108,9 +111,11 @@ export function BoardScreen({ userId }: { userId: string }) {
             <Button variant="primary" leadingIcon={<PlusIcon />} onClick={() => setNewTaskOpen(true)} disabled={!ready}>
               New task
             </Button>
-            <div className="order-last w-full">
-              <FilterBar api={filtersApi} counts={filterCounts} layout="desktop" />
-            </div>
+            {showFilters && (
+              <div className="order-last w-full">
+                <FilterBar api={filtersApi} counts={filterCounts} layout="desktop" />
+              </div>
+            )}
           </div>
         )}
 
@@ -134,6 +139,11 @@ export function BoardScreen({ userId }: { userId: string }) {
           singleColumn={isMobile ? mobileTab : null}
           filter={filter}
           createTask={createTask}
+          overlay={
+            ready && board.tasks.length === 0 ? (
+              <EmptyBoard onNewTask={() => setNewTaskOpen(true)} onLoadSample={board.loadSampleBoard} />
+            ) : undefined
+          }
         />
       </main>
 

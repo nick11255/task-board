@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { describeError } from '../../lib/errors'
-import { deleteTask as apiDeleteTask, fetchTasks, insertTask, updateTask as apiUpdateTask } from '../tasks/api'
+import { deleteTask as apiDeleteTask, fetchTasks, insertTask, insertTasks, updateTask as apiUpdateTask } from '../tasks/api'
 import { planMove, topPosition } from '../tasks/position'
 import type { Task, TaskPriority, TaskStatus, TaskUpdate } from '../tasks/types'
 import { groupTasks } from './groupTasks'
+import { buildSampleTasks } from './sampleBoard'
 
 export type BoardPhase = 'loading' | 'error' | 'ready'
 
@@ -40,6 +41,8 @@ export type Board = {
    * that show the error themselves) and the promise rejects.
    */
   moveTask: (id: string, status: TaskStatus, index: number, options?: { notify?: boolean }) => Promise<void>
+  /** First-run helper: inserts a realistic sample board in one request. Rejects on failure. */
+  loadSampleBoard: () => Promise<void>
 }
 
 const shorten = (title: string) => (title.length > 48 ? `${title.slice(0, 47).trimEnd()}…` : title)
@@ -230,7 +233,15 @@ export function useBoard(userId: string): Board {
     }
   }, [])
 
+  const loadSampleBoard = useCallback(async () => {
+    // Not optimistic: nine cards popping in and then out on failure would be
+    // worse than a short wait on the button. One insert = one transaction.
+    mutationVersion.current++
+    const saved = await insertTasks(buildSampleTasks(new Date()))
+    setTasks((prev) => [...prev, ...saved])
+  }, [])
+
   const columns = useMemo(() => groupTasks(tasks), [tasks])
 
-  return { phase, error, tasks, columns, pendingIds, reload, createTask, updateTask, deleteTask, moveTask }
+  return { phase, error, tasks, columns, pendingIds, reload, createTask, updateTask, deleteTask, moveTask, loadSampleBoard }
 }

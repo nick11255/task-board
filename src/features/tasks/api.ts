@@ -39,6 +39,13 @@ export async function deleteTask(id: string): Promise<void> {
   if (error) throw error
 }
 
+/** Several tasks in one request (one transaction: all or nothing). */
+export async function insertTasks(rows: TaskInsert[]): Promise<Task[]> {
+  const { data, error } = await supabase.from('tasks').insert(rows).select(TASK_COLUMNS)
+  if (error) throw error
+  return data
+}
+
 export async function insertTask(input: TaskInsert): Promise<Task> {
   const { data, error } = await supabase.from('tasks').insert(input).select(TASK_COLUMNS).single()
   if (error) throw error

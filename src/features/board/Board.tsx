@@ -4,7 +4,9 @@ import {
   defaultDropAnimationSideEffects,
   type DropAnimation,
 } from '@dnd-kit/core'
+import type { ReactNode } from 'react'
 import { AlertIcon } from '../../components/icons'
+import { cx } from '../../lib/cx'
 import { Button } from '../../components/ui/Button'
 import { Column } from './Column'
 import { COLUMNS } from './columns'
@@ -31,9 +33,11 @@ type BoardProps = {
   filter: ((task: Task) => boolean) | null
   /** Create (wrapped by the screen so it can flag tasks hidden by filters). */
   createTask: (input: NewTask) => Promise<void>
+  /** Shown centered over a faded board (first run). */
+  overlay?: ReactNode
 }
 
-export function Board({ board, onOpenTask, onMoveTo, singleColumn, filter, createTask }: BoardProps) {
+export function Board({ board, onOpenTask, onMoveTo, singleColumn, filter, createTask, overlay }: BoardProps) {
   const dnd = useBoardDnd(board)
   const visible = singleColumn ? COLUMNS.filter((c) => c.status === singleColumn) : COLUMNS
 
@@ -52,8 +56,18 @@ export function Board({ board, onOpenTask, onMoveTo, singleColumn, filter, creat
         accessibility={dnd.accessibility}
         {...dnd.handlers}
       >
-        <div className="min-h-0 flex-1 overflow-x-auto overscroll-x-contain">
-          <div className="flex h-full items-start gap-3 px-4 pb-4 sm:px-6 sm:pb-6">
+        <div className="relative min-h-0 flex-1 overflow-x-auto overscroll-x-contain">
+          {overlay && (
+            <div className="absolute inset-0 z-10 flex items-start justify-center px-4 pt-16 sm:pt-24">{overlay}</div>
+          )}
+          <div
+            // The faded columns behind the first-run card still show the board's shape.
+            inert={overlay ? true : undefined}
+            className={cx(
+              'flex h-full items-start gap-3 px-4 pb-4 transition-opacity duration-300 sm:px-6 sm:pb-6',
+              overlay ? 'opacity-30' : null,
+            )}
+          >
             {visible.map((column) => (
               <Column
                 key={column.status}
