@@ -9,6 +9,7 @@ import { Spinner } from '../../components/ui/Spinner'
 import { cx } from '../../lib/cx'
 import { formatTimestamp } from '../../lib/dates'
 import { describeError } from '../../lib/errors'
+import { ActivityTimeline } from '../activity/ActivityTimeline'
 import { COLUMNS } from '../board/columns'
 import { StatusIcon } from '../board/StatusIcon'
 import type { TaskEdit } from '../board/useBoard'
@@ -242,6 +243,10 @@ function PanelContent({ task, onClose, onUpdate, onMove, onDelete, flushRef }: P
             placeholder="Add a description…"
             className={cx(controlClass, 'min-h-32 resize-y px-3 py-2 text-sm [field-sizing:content]')}
           />
+        </div>
+
+        <div className="border-t border-border pt-6">
+          <ActivityTimeline task={task} />
         </div>
 
         <p className="text-xs text-subtle">
