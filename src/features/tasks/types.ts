@@ -9,6 +9,15 @@ export type TaskPriority = (typeof TASK_PRIORITIES)[number]
 /** Mirrors the tasks_title_length check constraint. */
 export const TITLE_MAX_LENGTH = 200
 
+/** Mirrors the tasks_description_length check constraint. */
+export const DESCRIPTION_MAX_LENGTH = 5000
+
+export const PRIORITY_LABEL: Record<TaskPriority, string> = {
+  low: 'Low',
+  normal: 'Normal',
+  high: 'High',
+}
+
 /** A row of public.tasks, as returned by the API. */
 export type Task = {
   id: string

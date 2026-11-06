@@ -20,7 +20,7 @@ const dropAnimation: DropAnimation = {
   sideEffects: defaultDropAnimationSideEffects({ styles: { active: { opacity: '0.4' } } }),
 }
 
-export function Board({ board }: { board: BoardState }) {
+export function Board({ board, onOpenTask }: { board: BoardState; onOpenTask: (id: string) => void }) {
   const dnd = useBoardDnd(board)
 
   return (
@@ -50,7 +50,8 @@ export function Board({ board }: { board: BoardState }) {
                 skeletonCount={SKELETON_COUNTS[i] ?? 2}
                 isDragging={dnd.activeTask !== null}
                 isDropTarget={dnd.overColumn === column.status}
-                onCreate={(title) => board.createTask(column.status, title)}
+                onCreate={(title) => board.createTask({ status: column.status, title })}
+                onOpenTask={onOpenTask}
               />
             ))}
           </div>

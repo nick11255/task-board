@@ -24,6 +24,7 @@ type ColumnProps = {
   /** The dragged card is currently over this column. */
   isDropTarget: boolean
   onCreate: (title: string) => Promise<void>
+  onOpenTask: (id: string) => void
 }
 
 type Composer = { open: false } | { open: true; draft: string; error: string | null }
@@ -37,6 +38,7 @@ export function Column({
   isDragging,
   isDropTarget,
   onCreate,
+  onOpenTask,
 }: ColumnProps) {
   const headingId = `column-${column.status}`
   const [composer, setComposer] = useState<Composer>({ open: false })
@@ -110,7 +112,12 @@ export function Column({
         {phase === 'ready' && (
           <SortableContext items={ids} strategy={verticalListSortingStrategy}>
             {tasks.map((task) => (
-              <SortableTaskCard key={task.id} task={task} pending={pendingIds.has(task.id)} />
+              <SortableTaskCard
+                key={task.id}
+                task={task}
+                pending={pendingIds.has(task.id)}
+                onOpen={onOpenTask}
+              />
             ))}
           </SortableContext>
         )}

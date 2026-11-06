@@ -48,6 +48,80 @@ export function AlertIcon(props: IconProps) {
   )
 }
 
+export function CloseIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M4 4l8 8M12 4l-8 8" />
+    </Icon>
+  )
+}
+
+export function CalendarIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <rect x="2.5" y="3.5" width="11" height="10" rx="2" />
+      <path d="M2.5 6.5h11M5.5 2v3M10.5 2v3" />
+    </Icon>
+  )
+}
+
+export function TextIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M3 4.5h10M3 8h10M3 11.5h6" />
+    </Icon>
+  )
+}
+
+export function TrashIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.6 8.1a1 1 0 0 0 1 .9h3.8a1 1 0 0 0 1-.9l.6-8.1" />
+    </Icon>
+  )
+}
+
+export function ChevronDownIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M4.5 6.5L8 10l3.5-3.5" />
+    </Icon>
+  )
+}
+
+/** Signal-bar priority glyph: 1, 2 or 3 filled bars for low, normal, high. */
+export function PriorityIcon({
+  level,
+  size = 16,
+  className,
+}: {
+  level: 1 | 2 | 3
+  size?: number
+  className?: string
+}) {
+  const bars = [
+    { x: 2, h: 4 },
+    { x: 6.5, h: 7 },
+    { x: 11, h: 10 },
+  ]
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" aria-hidden className={className}>
+      {bars.map((bar, i) => (
+        <rect
+          key={bar.x}
+          x={bar.x}
+          y={13 - bar.h}
+          width="3"
+          height={bar.h}
+          rx="1"
+          fill="currentColor"
+          opacity={i < level ? 1 : 0.25}
+        />
+      ))}
+    </svg>
+  )
+}
+
 /** Brand mark: three stacked bars, a nod to board columns. */
 export function LogoMark({ size = 24 }: { size?: number }) {
   return (

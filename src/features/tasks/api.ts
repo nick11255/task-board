@@ -33,6 +33,12 @@ export async function updateTask(id: string, patch: TaskUpdate): Promise<Task> {
   return data
 }
 
+/** Delete one task. Errors (PGRST116) if no row matched, e.g. already deleted. */
+export async function deleteTask(id: string): Promise<void> {
+  const { error } = await supabase.from('tasks').delete().eq('id', id).select('id').single()
+  if (error) throw error
+}
+
 export async function insertTask(input: TaskInsert): Promise<Task> {
   const { data, error } = await supabase.from('tasks').insert(input).select(TASK_COLUMNS).single()
   if (error) throw error

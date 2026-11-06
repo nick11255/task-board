@@ -98,11 +98,15 @@ export function useBoardDnd(board: Board) {
   }, [])
 
   const sensors = useSensors(
-    // Small distance so a click (later: open details) isn't a drag.
+    // Small distance so a click (which opens the task) is not a drag.
     useSensor(MouseSensor, { activationConstraint: { distance: 4 } }),
     // Press-and-hold on touch, so swiping still scrolls the board.
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 6 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+    // Space picks up (Enter is taken: it opens the task). Space or Enter drops.
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+      keyboardCodes: { start: ['Space'], cancel: ['Escape'], end: ['Space', 'Enter'] },
+    }),
   )
 
   const taskById = useMemo(() => new Map(board.tasks.map((t) => [t.id, t])), [board.tasks])
@@ -175,7 +179,8 @@ export function useBoardDnd(board: Board) {
     const index = items.indexOf(id)
     if (start && start.status === status && start.index === index) return // dropped where it started
 
-    board.moveTask(id, status, index)
+    // Failure is handled inside moveTask (revert + toast).
+    board.moveTask(id, status, index).catch(() => {})
   }
 
   const titleOf = (id: UniqueIdentifier) => `“${taskById.get(String(id))?.title ?? 'task'}”`
@@ -209,7 +214,7 @@ export function useBoardDnd(board: Board) {
       announcements,
       screenReaderInstructions: {
         draggable:
-          'To pick up a task, press Space or Enter. Use the arrow keys to move it within a column or to another column. Press Space or Enter again to drop it, or Escape to cancel.',
+          'Press Enter to open a task. To move it, press Space, use the arrow keys to move it within a column or to another column, then press Space or Enter to drop it. Press Escape to cancel.',
       },
     },
   }

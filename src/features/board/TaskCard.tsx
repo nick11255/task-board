@@ -1,8 +1,11 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import type { ComponentProps } from 'react'
+import { CalendarIcon, TextIcon } from '../../components/icons'
 import { cx } from '../../lib/cx'
-import type { Task } from '../tasks/types'
+import { formatShortDate } from '../../lib/dates'
+import { TaskPriorityIcon } from '../tasks/TaskFields'
+import { PRIORITY_LABEL, type Task } from '../tasks/types'
 
 type Variant = 'default' | 'ghost' | 'overlay'
 
@@ -31,12 +34,43 @@ export function TaskCard({ task, pending = false, variant = 'default', className
       {...props}
     >
       <h3 className="line-clamp-2 text-sm font-medium break-words text-text">{task.title}</h3>
+      <TaskMeta task={task} />
     </article>
   )
 }
 
-/** A card that can be picked up and moved within or across columns. */
-export function SortableTaskCard({ task, pending = false }: { task: Task; pending?: boolean }) {
+function TaskMeta({ task }: { task: Task }) {
+  return (
+    <div className="mt-2 flex items-center gap-3 text-xs text-muted">
+      <span className="flex items-center" title={`${PRIORITY_LABEL[task.priority]} priority`}>
+        <TaskPriorityIcon priority={task.priority} />
+        <span className="sr-only">{PRIORITY_LABEL[task.priority]} priority</span>
+      </span>
+      {task.due_date && (
+        <span className="flex items-center gap-1 tabular-nums">
+          <CalendarIcon size={12} />
+          <span className="sr-only">Due</span>
+          {formatShortDate(task.due_date)}
+        </span>
+      )}
+      {task.description && (
+        <span className="flex items-center" title="Has a description">
+          <TextIcon size={12} />
+          <span className="sr-only">Has a description</span>
+        </span>
+      )}
+    </div>
+  )
+}
+
+type SortableTaskCardProps = {
+  task: Task
+  pending?: boolean
+  onOpen: (id: string) => void
+}
+
+/** A card that can be picked up and moved within or across columns, and opened. */
+export function SortableTaskCard({ task, pending = false, onOpen }: SortableTaskCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: task.id,
     // An unsaved card can't move yet: its row doesn't exist server-side.
@@ -50,9 +84,21 @@ export function SortableTaskCard({ task, pending = false }: { task: Task; pendin
       pending={pending}
       variant={isDragging ? 'ghost' : 'default'}
       style={{ transform: CSS.Translate.toString(transform), transition }}
-      className={cx('touch-manipulation select-none', !pending && 'cursor-grab')}
+      className={cx('touch-manipulation select-none', pending ? 'cursor-progress' : 'cursor-pointer')}
       {...attributes}
+      aria-label={`${task.title}. Press Enter to open, Space to move.`}
       {...listeners}
+      // Click opens (the 4px drag threshold keeps drags from counting as clicks).
+      onClick={() => !pending && onOpen(task.id)}
+      // Enter opens; Space is reserved for keyboard dragging (see sensor config).
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' && !isDragging && !pending) {
+          event.preventDefault()
+          onOpen(task.id)
+          return
+        }
+        listeners?.onKeyDown?.(event)
+      }}
     />
   )
 }

@@ -72,6 +72,22 @@
   /* Motion */
   --ease-snappy: cubic-bezier(0.2, 0, 0, 1);
   --animate-shimmer: shimmer 1.4s ease-in-out infinite;
+  --animate-dialog-in: dialog-in 180ms var(--ease-snappy);
+  --animate-sheet-in: sheet-in 220ms var(--ease-snappy);
+
+  @keyframes dialog-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px) scale(0.98);
+    }
+  }
+
+  @keyframes sheet-in {
+    from {
+      transform: translateX(24px);
+      opacity: 0;
+    }
+  }
 
   @keyframes shimmer {
     0%,
