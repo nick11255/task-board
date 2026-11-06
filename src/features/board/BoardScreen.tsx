@@ -1,22 +1,27 @@
-import { useCallback, useMemo, useState, type CSSProperties } from 'react'
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { toast, Toaster } from 'sonner'
 import { AmbientBackground } from '../../components/AmbientBackground'
 import { AppHeader } from '../../components/AppHeader'
 import { ThemeToggle } from '../../components/ThemeToggle'
-import { LockIcon, PlusIcon } from '../../components/icons'
+import { LockIcon, PlusIcon, UserIcon } from '../../components/icons'
 import { Button } from '../../components/ui/Button'
+import { describeError } from '../../lib/errors'
 import { useTheme } from '../../lib/theme'
 import { MOBILE_QUERY, useMediaQuery } from '../../lib/useMediaQuery'
 import { useToday } from '../../lib/useToday'
 import { NewTaskDialog } from '../tasks/NewTaskDialog'
 import { TaskPanel } from '../tasks/TaskPanel'
 import { TASK_STATUSES, type Task, type TaskStatus } from '../tasks/types'
+import { AvatarStack } from '../team/Avatar'
+import { TeamDialog } from '../team/TeamDialog'
+import { useTeam } from '../team/useTeam'
 import { Board } from './Board'
 import { EmptyBoard } from './EmptyBoard'
 import { FilterBar } from './FilterBar'
-import { matchesFilters } from './filters'
+import { matchesFilters, type FilterableTask } from './filters'
 import { COLUMNS } from './columns'
 import { MobileTabs } from './MobileTabs'
+import { SAMPLE_TEAM } from './sampleBoard'
 import { computeStats } from './stats'
 import { StatsBar, StatsLine } from './StatsBar'
 import { useBoard, type NewTask } from './useBoard'
@@ -24,6 +29,9 @@ import { useFilters } from './useFilters'
 
 export function BoardScreen({ userId }: { userId: string }) {
   const board = useBoard(userId)
+  // Team data is separate: if it fails to load, tasks still work (cards just show no avatars).
+  const team = useTeam()
+  const [teamOpen, setTeamOpen] = useState(false)
   const isMobile = useMediaQuery(MOBILE_QUERY)
   const theme = useTheme()
   const [newTaskOpen, setNewTaskOpen] = useState(false)
@@ -39,11 +47,18 @@ export function BoardScreen({ userId }: { userId: string }) {
 
   const filtersApi = useFilters()
   const { filters, active: filtering } = filtersApi
-  const matches = useCallback(
-    (task: Pick<Task, 'title' | 'priority' | 'due_date' | 'status'>) => matchesFilters(task, filters, today),
-    [filters, today],
+  const matches = useCallback((task: FilterableTask) => matchesFilters(task, filters, today), [filters, today])
+  const { idsFor } = team
+  const filter = useMemo(
+    () => (filtering ? (task: Task) => matches({ ...task, assigneeIds: idsFor(task.id) }) : null),
+    [filtering, matches, idsFor],
   )
-  const filter = filtering ? matches : null
+
+  // A shared link may name members that don't exist here (or were removed): drop them.
+  const { pruneAssignees } = filtersApi
+  useEffect(() => {
+    if (team.phase === 'ready') pruneAssignees(new Set(team.members.map((m) => m.id)))
+  }, [team.phase, team.members, pruneAssignees])
 
   const counts = ready
     ? (Object.fromEntries(
@@ -58,10 +73,19 @@ export function BoardScreen({ userId }: { userId: string }) {
   // Four zeros on a first run are noise; the hero explains the empty board instead.
   const showStats = board.phase !== 'error' && (!ready || board.tasks.length > 0)
 
-  // A task created while filtering may not match: say so instead of letting it vanish.
-  const createTask = async (input: NewTask) => {
-    await board.createTask(input)
-    const candidate = { priority: 'normal' as const, due_date: null, ...input }
+  // Create, then attach assignees once the row exists (the FK needs it). A task created
+  // while filtering may not match: say so instead of letting it vanish.
+  const createTask = async (input: NewTask, memberIds: string[] = []) => {
+    const id = input.id ?? crypto.randomUUID()
+    await board.createTask({ ...input, id })
+    if (memberIds.length > 0) {
+      try {
+        await team.assignMany(id, memberIds)
+      } catch (err) {
+        toast.error('Task created, but assigning people failed', { description: describeError(err) })
+      }
+    }
+    const candidate = { priority: 'normal' as const, due_date: null, ...input, assigneeIds: memberIds }
     if (filtering && !matches(candidate)) {
       const label = COLUMNS.find((c) => c.status === input.status)?.label ?? input.status
       toast(`Added to ${label}, hidden by your filters`, {
@@ -69,6 +93,18 @@ export function BoardScreen({ userId }: { userId: string }) {
       })
     }
   }
+
+  const loadSample = async () => {
+    const saved = await board.loadSampleBoard()
+    try {
+      await team.seedSample(saved, SAMPLE_TEAM)
+    } catch (err) {
+      toast.error("Sample tasks added, but the sample team couldn't be created", { description: describeError(err) })
+    }
+  }
+
+  const toggleAssignee = (taskId: string, memberId: string, selected: boolean) =>
+    selected ? team.assign(taskId, memberId) : team.unassign(taskId, memberId)
 
   // "Move to…" from a card menu. On mobile the card leaves the visible tab,
   // so confirm where it went and offer a jump there.
@@ -88,7 +124,24 @@ export function BoardScreen({ userId }: { userId: string }) {
       <AppHeader
         userId={userId}
         mobileTitle="My board"
-        actions={<ThemeToggle preference={theme.preference} onCycle={theme.cycle} />}
+        actions={
+          <>
+            <button
+              type="button"
+              onClick={() => setTeamOpen(true)}
+              aria-label={`Team (${team.members.length} ${team.members.length === 1 ? 'person' : 'people'})`}
+              className="inline-flex h-7 items-center gap-2 rounded-full border border-border px-2 text-xs font-medium text-muted transition-colors duration-150 ease-out hover:border-border-strong hover:text-text"
+            >
+              {team.members.length > 0 ? (
+                <AvatarStack members={team.members} max={3} size="xs" ringClass="ring-bg" />
+              ) : (
+                <UserIcon size={12} />
+              )}
+              <span className="max-sm:hidden">Team</span>
+            </button>
+            <ThemeToggle preference={theme.preference} onCycle={theme.cycle} />
+          </>
+        }
       />
 
       {/* isolate: the ambient layer's -z-10 stays inside this box (behind the board, not the page). */}
@@ -98,7 +151,9 @@ export function BoardScreen({ userId }: { userId: string }) {
           {isMobile ? (
             <div className="flex flex-col gap-3 px-4 pt-3">
               {showStats && <StatsLine stats={stats} />}
-              {showFilters && <FilterBar api={filtersApi} counts={filterCounts} layout="mobile" />}
+              {showFilters && (
+                <FilterBar api={filtersApi} members={team.members} counts={filterCounts} layout="mobile" />
+              )}
               <MobileTabs active={mobileTab} counts={counts} onChange={setMobileTab} />
             </div>
           ) : (
@@ -121,7 +176,7 @@ export function BoardScreen({ userId }: { userId: string }) {
               </Button>
               {showFilters && (
                 <div className="order-last w-full">
-                  <FilterBar api={filtersApi} counts={filterCounts} layout="desktop" />
+                  <FilterBar api={filtersApi} members={team.members} counts={filterCounts} layout="desktop" />
                 </div>
               )}
             </div>
@@ -149,10 +204,11 @@ export function BoardScreen({ userId }: { userId: string }) {
             onMoveTo={moveTo}
             singleColumn={isMobile ? mobileTab : null}
             filter={filter}
-            createTask={createTask}
+            createTask={(input) => createTask(input)}
+            assigneesFor={team.membersFor}
             overlay={
               ready && board.tasks.length === 0 ? (
-                <EmptyBoard onNewTask={() => setNewTaskOpen(true)} onLoadSample={board.loadSampleBoard} />
+                <EmptyBoard onNewTask={() => setNewTaskOpen(true)} onLoadSample={loadSample} />
               ) : undefined
             }
           />
@@ -174,6 +230,8 @@ export function BoardScreen({ userId }: { userId: string }) {
         open={newTaskOpen}
         onClose={() => setNewTaskOpen(false)}
         onCreate={createTask}
+        members={team.members}
+        onAddMember={(name) => team.addMember(name)}
         defaultStatus={isMobile ? mobileTab : 'todo'}
       />
 
@@ -183,7 +241,14 @@ export function BoardScreen({ userId }: { userId: string }) {
         onUpdate={board.updateTask}
         onMove={(id, status) => board.moveTask(id, status, 0, { notify: false })}
         onDelete={board.deleteTask}
+        members={team.members}
+        assigneeIds={openTask ? team.idsFor(openTask.id) : []}
+        onToggleAssignee={toggleAssignee}
+        onAddMember={(name) => team.addMember(name)}
+        teamVersion={team.version}
       />
+
+      <TeamDialog open={teamOpen} onClose={() => setTeamOpen(false)} team={team} />
 
       <Toaster
         position={isMobile ? 'bottom-center' : 'bottom-right'}

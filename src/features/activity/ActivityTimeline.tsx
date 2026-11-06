@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { CalendarIcon, PlusIcon, TextIcon } from '../../components/icons'
+import { CalendarIcon, PlusIcon, TextIcon, UserIcon } from '../../components/icons'
 import { cx } from '../../lib/cx'
 import { formatTimestamp } from '../../lib/dates'
 import { StatusIcon } from '../board/StatusIcon'
@@ -35,11 +35,15 @@ function KindIcon({ entry }: { entry: TaskActivity }): ReactNode {
     case 'title_changed':
     case 'description_changed':
       return <TextIcon size={12} />
+    case 'assignee_added':
+    case 'assignee_removed':
+      return <UserIcon size={12} />
   }
 }
 
-export function ActivityTimeline({ task }: { task: Task }) {
-  const { state, retry } = useTaskActivity(task.id, task.updated_at)
+/** `extraVersion` changes when something outside the task row changed its history (e.g. an assignment). */
+export function ActivityTimeline({ task, extraVersion = '' }: { task: Task; extraVersion?: string | number }) {
+  const { state, retry } = useTaskActivity(task.id, `${task.updated_at}|${extraVersion}`)
   const now = useNow()
 
   return (

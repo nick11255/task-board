@@ -17,6 +17,9 @@ export function describeError(error: unknown): string {
       ? String((error as { code: unknown }).code)
       : undefined
 
+  if (code === '23505') {
+    return 'That name is already taken. Pick a different one.'
+  }
   if (code === 'PGRST116') {
     return 'This task no longer exists. Refresh to see the latest board.'
   }

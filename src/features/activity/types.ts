@@ -1,4 +1,4 @@
-/** Mirrors the task_activity_kind_valid check constraint (0002). */
+/** Mirrors the task_activity_kind_valid check constraint (0002, widened in 0003). */
 export const ACTIVITY_KINDS = [
   'created',
   'status_changed',
@@ -6,6 +6,8 @@ export const ACTIVITY_KINDS = [
   'description_changed',
   'priority_changed',
   'due_date_changed',
+  'assignee_added', // 0003
+  'assignee_removed', // 0003
 ] as const
 export type ActivityKind = (typeof ACTIVITY_KINDS)[number]
 

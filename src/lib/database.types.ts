@@ -1,5 +1,6 @@
 import type { TaskActivity } from '../features/activity/types'
 import type { Task, TaskInsert, TaskUpdate } from '../features/tasks/types'
+import type { MemberColor, TaskAssignee, TeamMember } from '../features/team/types'
 
 /**
  * Hand-written Supabase schema types (the CLI generator isn't set up).
@@ -20,6 +21,19 @@ export type Database = {
       task_activity: {
         Row: TaskActivity
         Insert: never
+        Update: never
+        Relationships: []
+      }
+      team_members: {
+        Row: TeamMember
+        Insert: { id?: string; name: string; color?: MemberColor; user_id?: never }
+        Update: { name?: string; color?: MemberColor; user_id?: never }
+        Relationships: []
+      }
+      task_assignees: {
+        Row: TaskAssignee
+        Insert: { task_id: string; member_id: string; user_id?: never }
+        // No UPDATE grant: assignments are only added or removed.
         Update: never
         Relationships: []
       }

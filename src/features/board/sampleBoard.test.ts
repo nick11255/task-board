@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { getDueState } from '../tasks/dueState'
 import { TASK_PRIORITIES, TASK_STATUSES } from '../tasks/types'
 import { validateTaskFields } from '../tasks/validation'
-import { buildSampleTasks } from './sampleBoard'
+import { buildSampleTasks, SAMPLE_TEAM } from './sampleBoard'
 
 const today = new Date(2026, 10, 6, 9)
 const rows = buildSampleTasks(today)
@@ -39,5 +39,21 @@ describe('buildSampleTasks', () => {
 
   it('never sends user_id (the database fills it)', () => {
     for (const r of rows) expect('user_id' in r).toBe(false)
+  })
+})
+
+describe('SAMPLE_TEAM', () => {
+  it('only references sample task titles, and every member has work', () => {
+    const titles = new Set(rows.map((r) => r.title))
+    for (const member of SAMPLE_TEAM) {
+      expect(member.titles.length).toBeGreaterThan(0)
+      for (const title of member.titles) expect(titles.has(title)).toBe(true)
+    }
+  })
+  it('has unique names and shows multi-assignee cards', () => {
+    expect(new Set(SAMPLE_TEAM.map((m) => m.name.toLowerCase())).size).toBe(SAMPLE_TEAM.length)
+    const counts = new Map<string, number>()
+    for (const m of SAMPLE_TEAM) for (const t of m.titles) counts.set(t, (counts.get(t) ?? 0) + 1)
+    expect([...counts.values()].some((n) => n > 1)).toBe(true)
   })
 })

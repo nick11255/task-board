@@ -41,6 +41,11 @@ export function describeActivity(entry: Pick<TaskActivity, 'kind' | 'from_value'
         { text: ' to ' },
         { text: priorityLabel(to), strong: true },
       ]
+    // The name is a snapshot from when it happened, so renames/removals don't rewrite history.
+    case 'assignee_added':
+      return [{ text: 'Assigned ' }, { text: to ?? 'someone', strong: true }]
+    case 'assignee_removed':
+      return [{ text: 'Unassigned ' }, { text: to ?? 'someone', strong: true }]
     case 'due_date_changed':
       if (!to) return [{ text: 'Removed the due date' }]
       if (!from) return [{ text: 'Set the due date to ' }, { text: date(to), strong: true }]

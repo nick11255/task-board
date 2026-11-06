@@ -36,9 +36,29 @@ export function useFilters() {
     [],
   )
 
+  const toggleAssignee = useCallback(
+    (memberId: string) =>
+      setFilters((f) => ({
+        ...f,
+        assignees: f.assignees.includes(memberId)
+          ? f.assignees.filter((id) => id !== memberId)
+          : [...f.assignees, memberId],
+      })),
+    [],
+  )
+
+  /** Drop filter ids for members that no longer exist (e.g. a stale shared link). */
+  const pruneAssignees = useCallback(
+    (validIds: ReadonlySet<string>) =>
+      setFilters((f) =>
+        f.assignees.every((id) => validIds.has(id)) ? f : { ...f, assignees: f.assignees.filter((id) => validIds.has(id)) },
+      ),
+    [],
+  )
+
   const clear = useCallback(() => setFilters(EMPTY_FILTERS), [])
 
-  return { filters, active: isFiltering(filters), setQuery, togglePriority, toggleDue, clear }
+  return { filters, active: isFiltering(filters), setQuery, togglePriority, toggleDue, toggleAssignee, pruneAssignees, clear }
 }
 
 export type FiltersApi = ReturnType<typeof useFilters>

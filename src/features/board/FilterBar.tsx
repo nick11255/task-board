@@ -3,6 +3,8 @@ import { AlertIcon, CalendarIcon, CloseIcon, SearchIcon } from '../../components
 import { cx } from '../../lib/cx'
 import { TaskPriorityIcon } from '../tasks/TaskFields'
 import { PRIORITY_LABEL, type TaskPriority } from '../tasks/types'
+import { Avatar } from '../team/Avatar'
+import type { TeamMember } from '../team/types'
 import type { FiltersApi } from './useFilters'
 
 /** High first: it's the one people filter for. */
@@ -10,12 +12,14 @@ const PRIORITY_ORDER: TaskPriority[] = ['high', 'normal', 'low']
 
 type FilterBarProps = {
   api: FiltersApi
+  /** Roster for the assignee toggles (hidden when empty). */
+  members: readonly TeamMember[]
   /** Matching / total, shown while filtering. null while loading. */
   counts: { shown: number; total: number } | null
   layout: 'desktop' | 'mobile'
 }
 
-export function FilterBar({ api, counts, layout }: FilterBarProps) {
+export function FilterBar({ api, members, counts, layout }: FilterBarProps) {
   const { filters, active } = api
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -108,6 +112,32 @@ export function FilterBar({ api, counts, layout }: FilterBarProps) {
           Due soon
         </Chip>
       </div>
+      {members.length > 0 && (
+        <>
+          <span aria-hidden className="h-4 w-px shrink-0 bg-border" />
+          <div role="group" aria-label="Filter by assignee" className="flex shrink-0 items-center gap-1">
+            {members.map((member) => {
+              const pressed = filters.assignees.includes(member.id)
+              return (
+                <button
+                  key={member.id}
+                  type="button"
+                  aria-pressed={pressed}
+                  aria-label={`Assigned to ${member.name}`}
+                  title={member.name}
+                  onClick={() => api.toggleAssignee(member.id)}
+                  className={cx(
+                    'rounded-full p-0.5 transition-[box-shadow,opacity] duration-150 ease-out',
+                    pressed ? 'ring-2 ring-accent' : 'opacity-70 hover:opacity-100',
+                  )}
+                >
+                  <Avatar member={member} size="sm" decorative />
+                </button>
+              )
+            })}
+          </div>
+        </>
+      )}
     </>
   )
 

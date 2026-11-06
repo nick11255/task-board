@@ -6,6 +6,8 @@ import { cx } from '../../lib/cx'
 import { DueBadge } from '../tasks/DueBadge'
 import { TaskPriorityIcon } from '../tasks/TaskFields'
 import { PRIORITY_LABEL, type Task, type TaskStatus } from '../tasks/types'
+import { AvatarStack } from '../team/Avatar'
+import type { TeamMember } from '../team/types'
 import { COLUMNS } from './columns'
 
 type Variant = 'default' | 'ghost' | 'overlay' | 'showcase'
@@ -15,6 +17,7 @@ type TaskCardProps = ComponentProps<'article'> & {
   pending?: boolean
   /** ghost = the slot left behind while dragging; overlay = the card under the pointer. */
   variant?: Variant
+  assignees?: readonly TeamMember[]
 }
 
 const variants: Record<Variant, string> = {
@@ -28,7 +31,14 @@ const variants: Record<Variant, string> = {
   showcase: 'border-border shadow-overlay',
 }
 
-export function TaskCard({ task, pending = false, variant = 'default', className, ...props }: TaskCardProps) {
+export function TaskCard({
+  task,
+  pending = false,
+  variant = 'default',
+  assignees = [],
+  className,
+  ...props
+}: TaskCardProps) {
   return (
     <article
       aria-busy={pending || undefined}
@@ -40,15 +50,15 @@ export function TaskCard({ task, pending = false, variant = 'default', className
       {...props}
     >
       <h3 className="line-clamp-2 text-sm font-medium break-words text-text">{task.title}</h3>
-      <TaskMeta task={task} />
+      <TaskMeta task={task} assignees={assignees} />
     </article>
   )
 }
 
 /** Only what differs from the defaults: Normal priority, no date, no description show nothing. */
-function TaskMeta({ task }: { task: Task }) {
+function TaskMeta({ task, assignees }: { task: Task; assignees: readonly TeamMember[] }) {
   const showPriority = task.priority !== 'normal'
-  if (!showPriority && !task.due_date && !task.description) return null
+  if (!showPriority && !task.due_date && !task.description && assignees.length === 0) return null
 
   return (
     <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
@@ -67,6 +77,11 @@ function TaskMeta({ task }: { task: Task }) {
           <span className="sr-only">Has a description</span>
         </span>
       )}
+      {assignees.length > 0 && (
+        <span className="ml-auto">
+          <AvatarStack members={assignees} />
+        </span>
+      )}
     </div>
   )
 }
@@ -74,12 +89,13 @@ function TaskMeta({ task }: { task: Task }) {
 type SortableTaskCardProps = {
   task: Task
   pending?: boolean
+  assignees: readonly TeamMember[]
   onOpen: (id: string) => void
   onMoveTo: (id: string, status: TaskStatus) => void
 }
 
 /** A card that can be picked up and moved within or across columns, and opened. */
-export function SortableTaskCard({ task, pending = false, onOpen, onMoveTo }: SortableTaskCardProps) {
+export function SortableTaskCard({ task, pending = false, assignees, onOpen, onMoveTo }: SortableTaskCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: task.id,
     // An unsaved card can't move yet: its row doesn't exist server-side.
@@ -97,6 +113,7 @@ export function SortableTaskCard({ task, pending = false, onOpen, onMoveTo }: So
       <TaskCard
         task={task}
         pending={pending}
+        assignees={assignees}
         variant={isDragging ? 'ghost' : 'default'}
         className={cx('touch-manipulation pr-9 select-none', pending ? 'cursor-progress' : 'cursor-pointer')}
         {...attributes}

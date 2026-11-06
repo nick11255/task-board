@@ -38,6 +38,11 @@ describe('activityText', () => {
     )
   })
 
+  it('describes assignments using the name snapshot', () => {
+    expect(activityText({ kind: 'assignee_added', from_value: null, to_value: 'Maya Chen' })).toBe('Assigned Maya Chen')
+    expect(activityText({ kind: 'assignee_removed', from_value: null, to_value: 'Leo' })).toBe('Unassigned Leo')
+  })
+
   it('records description edits without their content', () => {
     expect(activityText({ kind: 'description_changed', from_value: null, to_value: null })).toBe(
       'Edited the description',

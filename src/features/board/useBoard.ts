@@ -10,6 +10,8 @@ import { buildSampleTasks } from './sampleBoard'
 export type BoardPhase = 'loading' | 'error' | 'ready'
 
 export type NewTask = {
+  /** Optional client id, so a caller can attach assignees once the insert lands. */
+  id?: string
   status: TaskStatus
   title: string
   description?: string | null
@@ -41,8 +43,8 @@ export type Board = {
    * that show the error themselves) and the promise rejects.
    */
   moveTask: (id: string, status: TaskStatus, index: number, options?: { notify?: boolean }) => Promise<void>
-  /** First-run helper: inserts a realistic sample board in one request. Rejects on failure. */
-  loadSampleBoard: () => Promise<void>
+  /** First-run helper: inserts a realistic sample board in one request; resolves with the saved tasks. */
+  loadSampleBoard: () => Promise<Task[]>
 }
 
 const shorten = (title: string) => (title.length > 48 ? `${title.slice(0, 47).trimEnd()}…` : title)
@@ -123,7 +125,7 @@ export function useBoard(userId: string): Board {
     async (input: NewTask) => {
       // Client-generated id: the optimistic card and the saved row share one
       // identity, so there's no temp-id swap (and no remount flicker).
-      const id = crypto.randomUUID()
+      const id = input.id ?? crypto.randomUUID()
       const now = new Date().toISOString()
       const position = topPosition(tasksRef.current.filter((t) => t.status === input.status))
       const fields = {
@@ -239,6 +241,7 @@ export function useBoard(userId: string): Board {
     mutationVersion.current++
     const saved = await insertTasks(buildSampleTasks(new Date()))
     setTasks((prev) => [...prev, ...saved])
+    return saved
   }, [])
 
   const columns = useMemo(() => groupTasks(tasks), [tasks])

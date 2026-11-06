@@ -1,5 +1,6 @@
 import { POSITION_STEP } from '../tasks/position'
 import type { TaskInsert, TaskPriority, TaskStatus } from '../tasks/types'
+import type { MemberColor } from '../team/types'
 
 type SampleTask = {
   title: string
@@ -83,3 +84,31 @@ export function buildSampleTasks(today: Date): TaskInsert[] {
     }
   })
 }
+
+/** The sample team, and which sample tasks each person is on (by title). */
+export const SAMPLE_TEAM: { name: string; color: MemberColor; titles: string[] }[] = [
+  {
+    name: 'Maya Chen',
+    color: 'indigo',
+    titles: ['Draft Q1 roadmap for leadership review', 'Migrate auth to Supabase', 'Choose an analytics provider'],
+  },
+  {
+    name: 'Leo Martins',
+    color: 'teal',
+    titles: ['Write the onboarding email sequence', 'Add a keyboard shortcuts help panel'],
+  },
+  {
+    name: 'Priya Shah',
+    color: 'rose',
+    titles: [
+      'Audit color contrast on the settings page',
+      'Design empty states for the dashboard',
+      'Add a keyboard shortcuts help panel',
+    ],
+  },
+  {
+    name: 'Sam Okafor',
+    color: 'amber',
+    titles: ['Migrate auth to Supabase', 'Fix timezone bug in due date badges', 'Set up CI with lint and unit tests'],
+  },
+]

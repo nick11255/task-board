@@ -6,6 +6,7 @@ import { IconButton } from '../../components/ui/IconButton'
 import { cx } from '../../lib/cx'
 import { describeError } from '../../lib/errors'
 import type { Task, TaskStatus } from '../tasks/types'
+import type { TeamMember } from '../team/types'
 import type { ColumnConfig } from './columns'
 import { QuickAdd } from './QuickAdd'
 import { StatusIcon } from './StatusIcon'
@@ -30,6 +31,7 @@ type ColumnProps = {
   onCreate: (title: string) => Promise<void>
   onOpenTask: (id: string) => void
   onMoveTo: (id: string, status: TaskStatus) => void
+  assigneesFor: (taskId: string) => readonly TeamMember[]
 }
 
 type Composer = { open: false } | { open: true; draft: string; error: string | null }
@@ -47,6 +49,7 @@ export function Column({
   onCreate,
   onOpenTask,
   onMoveTo,
+  assigneesFor,
 }: ColumnProps) {
   const headingId = `column-${column.status}`
   const [composer, setComposer] = useState<Composer>({ open: false })
@@ -139,6 +142,7 @@ export function Column({
                 key={task.id}
                 task={task}
                 pending={pendingIds.has(task.id)}
+                assignees={assigneesFor(task.id)}
                 onOpen={onOpenTask}
                 onMoveTo={onMoveTo}
               />

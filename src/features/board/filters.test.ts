@@ -50,6 +50,14 @@ describe('matchesFilters', () => {
     expect(matchesFilters(task({ due_date: '2026-11-05' }), soon, today)).toBe(false)
   })
 
+  it('filters by any of the selected assignees', () => {
+    const filters = f({ assignees: ['a', 'b'] })
+    expect(matchesFilters({ ...task(), assigneeIds: ['b', 'c'] }, filters, today)).toBe(true)
+    expect(matchesFilters({ ...task(), assigneeIds: ['c'] }, filters, today)).toBe(false)
+    expect(matchesFilters(task(), filters, today)).toBe(false)
+    expect(isFiltering(filters)).toBe(true)
+  })
+
   it('combines filters with AND', () => {
     const filters = f({ query: 'docs', priorities: ['high'], due: 'overdue' })
     expect(matchesFilters(task({ priority: 'high', due_date: '2026-11-01' }), filters, today)).toBe(true)
@@ -70,6 +78,12 @@ describe('URL round trip', () => {
 
   it('keeps unrelated params and removes cleared ones', () => {
     expect(serializeFilters(EMPTY_FILTERS, '?q=old&ref=email')).toBe('?ref=email')
+  })
+
+  it('round-trips assignee ids and drops anything that is not a uuid', () => {
+    const id = '0b9f2c1e-4a5d-4c3b-9e8f-1a2b3c4d5e6f'
+    expect(parseFilters(serializeFilters(f({ assignees: [id] }))).assignees).toEqual([id])
+    expect(parseFilters(`?assignee=${id},not-an-id,${id}`).assignees).toEqual([id])
   })
 
   it('ignores malformed or unknown values', () => {

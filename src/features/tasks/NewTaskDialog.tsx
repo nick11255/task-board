@@ -7,6 +7,8 @@ import { IconButton } from '../../components/ui/IconButton'
 import { cx } from '../../lib/cx'
 import { describeError } from '../../lib/errors'
 import type { NewTask } from '../board/useBoard'
+import { AssigneePicker } from '../team/AssigneePicker'
+import type { TeamMember } from '../team/types'
 import { DueDateInput, PriorityPicker, StatusSelect } from './TaskFields'
 import { DESCRIPTION_MAX_LENGTH, TITLE_MAX_LENGTH, type TaskPriority, type TaskStatus } from './types'
 import { normalizeDescription, validateTaskFields, type TaskFieldErrors } from './validation'
@@ -14,16 +16,32 @@ import { normalizeDescription, validateTaskFields, type TaskFieldErrors } from '
 type NewTaskDialogProps = {
   open: boolean
   onClose: () => void
-  onCreate: (input: NewTask) => Promise<void>
+  /** Creates the task, then assigns `memberIds` (rejects if the task insert fails). */
+  onCreate: (input: NewTask, memberIds: string[]) => Promise<void>
+  members: readonly TeamMember[]
+  onAddMember: (name: string) => Promise<TeamMember>
   /** Pre-selected column (e.g. the tab you're on, on mobile). */
   defaultStatus?: TaskStatus
 }
 
-export function NewTaskDialog({ open, onClose, onCreate, defaultStatus = 'todo' }: NewTaskDialogProps) {
+export function NewTaskDialog({
+  open,
+  onClose,
+  onCreate,
+  members,
+  onAddMember,
+  defaultStatus = 'todo',
+}: NewTaskDialogProps) {
   return (
     <Dialog open={open} onClose={onClose} labelledBy="new-task-title">
       {/* Mounted only while open, so every open starts with a fresh form. */}
-      <NewTaskForm onClose={onClose} onCreate={onCreate} defaultStatus={defaultStatus} />
+      <NewTaskForm
+        onClose={onClose}
+        onCreate={onCreate}
+        members={members}
+        onAddMember={onAddMember}
+        defaultStatus={defaultStatus}
+      />
     </Dialog>
   )
 }
@@ -31,6 +49,8 @@ export function NewTaskDialog({ open, onClose, onCreate, defaultStatus = 'todo' 
 function NewTaskForm({
   onClose,
   onCreate,
+  members,
+  onAddMember,
   defaultStatus,
 }: Omit<NewTaskDialogProps, 'open' | 'defaultStatus'> & { defaultStatus: TaskStatus }) {
   const [title, setTitle] = useState('')
@@ -38,6 +58,7 @@ function NewTaskForm({
   const [status, setStatus] = useState<TaskStatus>(defaultStatus)
   const [priority, setPriority] = useState<TaskPriority>('normal')
   const [dueDate, setDueDate] = useState('')
+  const [assigneeIds, setAssigneeIds] = useState<string[]>([])
   const [submitted, setSubmitted] = useState(false)
   const [saving, setSaving] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
@@ -53,13 +74,16 @@ function NewTaskForm({
     setSaving(true)
     setServerError(null)
     try {
-      await onCreate({
-        status,
-        title: title.trim(),
-        description: normalizeDescription(description),
-        priority,
-        due_date: dueDate || null,
-      })
+      await onCreate(
+        {
+          status,
+          title: title.trim(),
+          description: normalizeDescription(description),
+          priority,
+          due_date: dueDate || null,
+        },
+        assigneeIds,
+      )
       onClose()
     } catch (err) {
       // The optimistic card is already gone; keep the form so nothing is lost.
@@ -121,6 +145,18 @@ function NewTaskForm({
           <Field label="Due date" htmlFor="new-task-due" hint="Optional">
             <DueDateInput id="new-task-due" value={dueDate} onChange={setDueDate} />
           </Field>
+        </div>
+
+        <div>
+          <p className="mb-2 text-sm font-medium text-text">Assignees</p>
+          <AssigneePicker
+            members={members}
+            selectedIds={assigneeIds}
+            onToggle={(id, selected) =>
+              setAssigneeIds((ids) => (selected ? [...new Set([...ids, id])] : ids.filter((x) => x !== id)))
+            }
+            onAddMember={onAddMember}
+          />
         </div>
 
         <div>

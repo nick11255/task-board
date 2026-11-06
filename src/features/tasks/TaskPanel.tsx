@@ -13,6 +13,8 @@ import { ActivityTimeline } from '../activity/ActivityTimeline'
 import { COLUMNS } from '../board/columns'
 import { StatusIcon } from '../board/StatusIcon'
 import type { TaskEdit } from '../board/useBoard'
+import { AssigneePicker } from '../team/AssigneePicker'
+import type { TeamMember } from '../team/types'
 import { DueHint } from './DueBadge'
 import { DueDateInput, PriorityPicker, StatusSelect } from './TaskFields'
 import { DESCRIPTION_MAX_LENGTH, TITLE_MAX_LENGTH, type Task, type TaskStatus } from './types'
@@ -26,6 +28,13 @@ type TaskPanelProps = {
   /** Moves to the top of the new column. Rejects on failure (already reverted). */
   onMove: (id: string, status: TaskStatus) => Promise<void>
   onDelete: (id: string) => Promise<void>
+  /** Team: roster, this task's assignee ids, and actions (toggle rejects on failure, already reverted). */
+  members: readonly TeamMember[]
+  assigneeIds: readonly string[]
+  onToggleAssignee: (taskId: string, memberId: string, selected: boolean) => Promise<void>
+  onAddMember: (name: string) => Promise<TeamMember>
+  /** Bumps after confirmed assignment writes, so the timeline refetches. */
+  teamVersion: number
 }
 
 /**
@@ -53,7 +62,19 @@ type PanelContentProps = Omit<TaskPanelProps, 'task'> & {
   flushRef: MutableRefObject<(() => void) | null>
 }
 
-function PanelContent({ task, onClose, onUpdate, onMove, onDelete, flushRef }: PanelContentProps) {
+function PanelContent({
+  task,
+  onClose,
+  onUpdate,
+  onMove,
+  onDelete,
+  flushRef,
+  members,
+  assigneeIds,
+  onToggleAssignee,
+  onAddMember,
+  teamVersion,
+}: PanelContentProps) {
   // null = not editing; the field shows the task's current value.
   const [titleDraft, setTitleDraft] = useState<string | null>(null)
   const [descriptionDraft, setDescriptionDraft] = useState<string | null>(null)
@@ -75,6 +96,7 @@ function PanelContent({ task, onClose, onUpdate, onMove, onDelete, flushRef }: P
 
   const save = (edit: TaskEdit) => track(onUpdate(task.id, edit))
   const move = (status: TaskStatus) => track(onMove(task.id, status))
+  const toggleAssignee = (memberId: string, selected: boolean) => track(onToggleAssignee(task.id, memberId, selected))
 
   /** Show "Saving…" while a write is in flight, and explain a failure inline. */
   const track = (write: Promise<void>) => {
@@ -200,6 +222,16 @@ function PanelContent({ task, onClose, onUpdate, onMove, onDelete, flushRef }: P
             <StatusSelect id="task-panel-status" value={task.status} onChange={move} />
           </dd>
 
+          <dt className="self-start pt-1 text-muted">Assignees</dt>
+          <dd>
+            <AssigneePicker
+              members={members}
+              selectedIds={assigneeIds}
+              onToggle={toggleAssignee}
+              onAddMember={onAddMember}
+            />
+          </dd>
+
           <dt className="text-muted">Priority</dt>
           <dd>
             <PriorityPicker
@@ -246,7 +278,7 @@ function PanelContent({ task, onClose, onUpdate, onMove, onDelete, flushRef }: P
         </div>
 
         <div className="border-t border-border pt-6">
-          <ActivityTimeline task={task} />
+          <ActivityTimeline task={task} extraVersion={teamVersion} />
         </div>
 
         <p className="text-xs text-subtle">

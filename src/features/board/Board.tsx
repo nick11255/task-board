@@ -14,6 +14,7 @@ import { TaskCard } from './TaskCard'
 import type { Board as BoardState, NewTask } from './useBoard'
 import { useBoardDnd } from './useBoardDnd'
 import type { Task, TaskStatus } from '../tasks/types'
+import type { TeamMember } from '../team/types'
 
 const SKELETON_COUNTS = [3, 2, 1, 2] as const
 
@@ -35,9 +36,19 @@ type BoardProps = {
   createTask: (input: NewTask) => Promise<void>
   /** Shown centered over a faded board (first run). */
   overlay?: ReactNode
+  assigneesFor: (taskId: string) => readonly TeamMember[]
 }
 
-export function Board({ board, onOpenTask, onMoveTo, singleColumn, filter, createTask, overlay }: BoardProps) {
+export function Board({
+  board,
+  onOpenTask,
+  onMoveTo,
+  singleColumn,
+  filter,
+  createTask,
+  overlay,
+  assigneesFor,
+}: BoardProps) {
   const dnd = useBoardDnd(board)
   const visible = singleColumn ? COLUMNS.filter((c) => c.status === singleColumn) : COLUMNS
 
@@ -85,13 +96,16 @@ export function Board({ board, onOpenTask, onMoveTo, singleColumn, filter, creat
                 onCreate={(title) => createTask({ status: column.status, title })}
                 onOpenTask={onOpenTask}
                 onMoveTo={onMoveTo}
+                assigneesFor={assigneesFor}
               />
             ))}
           </div>
         </div>
 
         <DragOverlay dropAnimation={dropAnimation}>
-          {dnd.activeTask && <TaskCard task={dnd.activeTask} variant="overlay" />}
+          {dnd.activeTask && (
+            <TaskCard task={dnd.activeTask} variant="overlay" assignees={assigneesFor(dnd.activeTask.id)} />
+          )}
         </DragOverlay>
       </DndContext>
     </>
