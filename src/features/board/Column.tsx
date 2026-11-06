@@ -80,7 +80,12 @@ export function Column({
         'group/column flex max-h-full flex-col transition-[background-color,box-shadow] duration-150 ease-out',
         // Board columns run the full height (a stable grid), and scroll inside.
         single ? 'w-full' : 'min-w-[17rem] flex-1 basis-0 self-stretch rounded-xl p-2',
-        !single && (isDropTarget ? 'bg-accent-soft ring-1 ring-accent' : 'bg-column'),
+        // Glass over the ambient glow. Board layout only exists at ≥640px (phones use
+        // the transparent single-column view), and blur steps up only on large screens.
+        !single &&
+          (isDropTarget
+            ? 'bg-accent-soft ring-1 ring-accent'
+            : 'bg-glass shadow-xs ring-1 ring-glass-border backdrop-blur-md backdrop-saturate-150 ring-inset lg:backdrop-blur-xl'),
       )}
     >
       {!single && (
@@ -89,7 +94,7 @@ export function Column({
           <h2 id={headingId} className="text-sm font-semibold text-text">
             {column.label}
           </h2>
-          {phase === 'ready' && <span className="text-sm text-subtle tabular-nums">{tasks.length}</span>}
+          {phase === 'ready' && <span className="text-sm text-muted tabular-nums">{tasks.length}</span>}
           {/* Empty columns get their own "Add task" row instead, so there's one action. */}
           {phase === 'ready' && !isEmpty && (
             <IconButton
@@ -142,7 +147,7 @@ export function Column({
         )}
 
         {isEmpty && !composer.open && filtering && !isDragging && (
-          <p className="px-2 py-2 text-sm text-subtle">No matches</p>
+          <p className="px-2 py-2 text-sm text-muted">No matches</p>
         )}
 
         {isEmpty && !composer.open && (!filtering || isDragging) &&
@@ -161,7 +166,9 @@ function TabEmpty({ column, onAdd }: { column: ColumnConfig; onAdd: () => void }
   return (
     <div className="flex flex-col items-center px-6 pt-16 text-center">
       <StatusIcon status={column.status} size={20} />
-      <p className="mt-3 text-sm font-medium text-text">Nothing in {column.label}</p>
+      <p className="mt-3 font-display text-display text-text">
+        Nothing in <em className="italic">{column.label}</em>
+      </p>
       <button
         type="button"
         onClick={onAdd}
@@ -189,7 +196,7 @@ function ColumnEmpty({ label, dropping, onAdd }: { label: string; dropping: bool
       type="button"
       onClick={onAdd}
       aria-label={`No tasks in ${label}. Add task`}
-      className="flex h-10 w-full items-center gap-2 rounded-lg px-2 text-sm text-subtle transition-colors duration-150 ease-out hover:bg-surface hover:text-text"
+      className="flex h-10 w-full items-center gap-2 rounded-lg px-2 text-sm text-muted transition-colors duration-150 ease-out hover:bg-surface hover:text-text"
     >
       <PlusIcon size={14} />
       Add task

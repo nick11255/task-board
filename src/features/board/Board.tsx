@@ -58,14 +58,14 @@ export function Board({ board, onOpenTask, onMoveTo, singleColumn, filter, creat
       >
         <div className="relative min-h-0 flex-1 overflow-x-auto overscroll-x-contain">
           {overlay && (
-            <div className="absolute inset-0 z-10 flex items-start justify-center px-4 pt-16 sm:pt-24">{overlay}</div>
+            <div className="absolute inset-0 z-10 flex items-start justify-center overflow-y-auto px-4 pt-10 pb-10 sm:pt-16">{overlay}</div>
           )}
           <div
             // The faded columns behind the first-run card still show the board's shape.
             inert={overlay ? true : undefined}
             className={cx(
               'flex h-full items-start gap-3 px-4 pb-4 transition-opacity duration-300 sm:px-6 sm:pb-6',
-              overlay ? 'opacity-30' : null,
+              overlay ? 'opacity-25' : null,
             )}
           >
             {visible.map((column) => (

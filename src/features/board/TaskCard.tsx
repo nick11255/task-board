@@ -8,7 +8,7 @@ import { TaskPriorityIcon } from '../tasks/TaskFields'
 import { PRIORITY_LABEL, type Task, type TaskStatus } from '../tasks/types'
 import { COLUMNS } from './columns'
 
-type Variant = 'default' | 'ghost' | 'overlay'
+type Variant = 'default' | 'ghost' | 'overlay' | 'showcase'
 
 type TaskCardProps = ComponentProps<'article'> & {
   task: Task
@@ -18,9 +18,14 @@ type TaskCardProps = ComponentProps<'article'> & {
 }
 
 const variants: Record<Variant, string> = {
-  default: 'border-border shadow-xs hover:border-border-strong hover:bg-surface-hover hover:shadow-sm',
+  // Solid surface for readability; a 1px lift on hover (instant under reduced motion).
+  default:
+    'border-border shadow-xs hover:-translate-y-px hover:border-border-strong hover:bg-surface-hover hover:shadow-sm',
   ghost: 'border-border opacity-40 shadow-none',
-  overlay: 'cursor-grabbing border-border-strong shadow-overlay rotate-2 scale-[1.02]',
+  // Lifted while dragging: tilt plus the gradient glow.
+  overlay: 'cursor-grabbing border-transparent shadow-glow rotate-2 scale-[1.02]',
+  // Decorative example cards in the first-run hero.
+  showcase: 'border-border shadow-overlay',
 }
 
 export function TaskCard({ task, pending = false, variant = 'default', className, ...props }: TaskCardProps) {
@@ -28,7 +33,7 @@ export function TaskCard({ task, pending = false, variant = 'default', className
     <article
       aria-busy={pending || undefined}
       className={cx(
-        'rounded-lg border bg-surface p-3 transition-[border-color,background-color,box-shadow,opacity] duration-150 ease-out',
+        'rounded-lg border bg-surface p-3 transition-[border-color,background-color,box-shadow,opacity,translate] duration-150 ease-out',
         variants[variant],
         className,
       )}

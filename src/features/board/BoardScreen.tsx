@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState, type CSSProperties } from 'react'
 import { toast, Toaster } from 'sonner'
+import { AmbientBackground } from '../../components/AmbientBackground'
 import { AppHeader } from '../../components/AppHeader'
 import { ThemeToggle } from '../../components/ThemeToggle'
 import { LockIcon, PlusIcon } from '../../components/icons'
@@ -54,6 +55,8 @@ export function BoardScreen({ userId }: { userId: string }) {
   const noMatches = ready && filtering && shown === 0 && board.tasks.length > 0
   // Nothing to search on an empty board (but keep it if a shared link set filters, so they can be cleared).
   const showFilters = !ready || board.tasks.length > 0 || filtering
+  // Four zeros on a first run are noise; the hero explains the empty board instead.
+  const showStats = board.phase !== 'error' && (!ready || board.tasks.length > 0)
 
   // A task created while filtering may not match: say so instead of letting it vanish.
   const createTask = async (input: NewTask) => {
@@ -88,64 +91,73 @@ export function BoardScreen({ userId }: { userId: string }) {
         actions={<ThemeToggle preference={theme.preference} onCycle={theme.cycle} />}
       />
 
-      <main className="mx-auto flex min-h-0 w-full max-w-[88rem] flex-1 flex-col">
-        {isMobile ? (
-          <div className="flex flex-col gap-3 px-4 pt-3">
-            {board.phase !== 'error' && <StatsLine stats={stats} />}
-            {showFilters && <FilterBar api={filtersApi} counts={filterCounts} layout="mobile" />}
-            <MobileTabs active={mobileTab} counts={counts} onChange={setMobileTab} />
-          </div>
-        ) : (
-          <div className="flex flex-wrap items-end gap-x-6 gap-y-4 px-6 pt-6 pb-4">
-            <div className="mr-auto min-w-0">
-              <h1 className="text-xl font-semibold text-text">My board</h1>
-              <p className="mt-1 flex items-center gap-1 text-sm text-muted">
-                <LockIcon size={12} className="text-subtle" />
-                Private to this browser
-              </p>
+      {/* isolate: the ambient layer's -z-10 stays inside this box (behind the board, not the page). */}
+      <div className="relative isolate flex min-h-0 flex-1 flex-col">
+        <AmbientBackground />
+        <main className="mx-auto flex min-h-0 w-full max-w-[88rem] flex-1 flex-col">
+          {isMobile ? (
+            <div className="flex flex-col gap-3 px-4 pt-3">
+              {showStats && <StatsLine stats={stats} />}
+              {showFilters && <FilterBar api={filtersApi} counts={filterCounts} layout="mobile" />}
+              <MobileTabs active={mobileTab} counts={counts} onChange={setMobileTab} />
             </div>
-            {/* Below lg the stats take their own full-width row under the title. */}
-            {board.phase !== 'error' && (
-              <StatsBar stats={stats} className="order-last w-full lg:order-none lg:w-auto" />
-            )}
-            <Button variant="primary" leadingIcon={<PlusIcon />} onClick={() => setNewTaskOpen(true)} disabled={!ready}>
-              New task
-            </Button>
-            {showFilters && (
-              <div className="order-last w-full">
-                <FilterBar api={filtersApi} counts={filterCounts} layout="desktop" />
+          ) : (
+            <div className="flex flex-wrap items-end gap-x-6 gap-y-4 px-6 pt-6 pb-4">
+              <div className="mr-auto min-w-0">
+                <h1 className="font-display text-display text-text">
+                  My <em className="italic">board</em>
+                </h1>
+                <p className="mt-1 flex items-center gap-1 text-sm text-muted">
+                  <LockIcon size={12} className="text-subtle" />
+                  Private to this browser
+                </p>
               </div>
-            )}
-          </div>
-        )}
+              {/* Below lg the stats take their own full-width row under the title. */}
+              {showStats && (
+                <StatsBar stats={stats} className="order-last w-full lg:order-none lg:w-auto" />
+              )}
+              <Button variant="primary" leadingIcon={<PlusIcon />} onClick={() => setNewTaskOpen(true)} disabled={!ready}>
+                New task
+              </Button>
+              {showFilters && (
+                <div className="order-last w-full">
+                  <FilterBar api={filtersApi} counts={filterCounts} layout="desktop" />
+                </div>
+              )}
+            </div>
+          )}
 
-        {noMatches && (
-          <div role="status" className="mx-4 mb-3 flex items-center gap-3 rounded-lg border border-border bg-surface px-4 py-3 text-sm sm:mx-6">
-            <span className="text-text">No tasks match your filters.</span>
-            <button
-              type="button"
-              onClick={filtersApi.clear}
-              className="ml-auto text-sm font-medium text-accent underline-offset-2 hover:underline"
-            >
-              Clear filters
-            </button>
-          </div>
-        )}
+          {noMatches && (
+            <div role="status" className="mx-4 mb-3 flex items-center gap-3 rounded-lg border border-border bg-surface px-4 py-3 text-sm sm:mx-6">
+              <span className="font-display text-xl text-text">
+                No <em className="italic">matches</em>
+              </span>
+              <span className="text-sm text-muted max-sm:hidden">Try a different search, or clear the filters.</span>
+              <button
+                type="button"
+                onClick={filtersApi.clear}
+                className="ml-auto text-sm font-medium text-accent underline-offset-2 hover:underline"
+              >
+                Clear filters
+              </button>
+            </div>
+          )}
 
-        <Board
-          board={board}
-          onOpenTask={setOpenTaskId}
-          onMoveTo={moveTo}
-          singleColumn={isMobile ? mobileTab : null}
-          filter={filter}
-          createTask={createTask}
-          overlay={
-            ready && board.tasks.length === 0 ? (
-              <EmptyBoard onNewTask={() => setNewTaskOpen(true)} onLoadSample={board.loadSampleBoard} />
-            ) : undefined
-          }
-        />
-      </main>
+          <Board
+            board={board}
+            onOpenTask={setOpenTaskId}
+            onMoveTo={moveTo}
+            singleColumn={isMobile ? mobileTab : null}
+            filter={filter}
+            createTask={createTask}
+            overlay={
+              ready && board.tasks.length === 0 ? (
+                <EmptyBoard onNewTask={() => setNewTaskOpen(true)} onLoadSample={board.loadSampleBoard} />
+              ) : undefined
+            }
+          />
+        </main>
+      </div>
 
       {/* Mobile: New task is a floating button, clear of the home indicator. */}
       <button
@@ -153,7 +165,7 @@ export function BoardScreen({ userId }: { userId: string }) {
         aria-label="New task"
         onClick={() => setNewTaskOpen(true)}
         disabled={!ready}
-        className="fixed right-4 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-10 flex size-14 items-center justify-center rounded-full bg-accent text-on-accent shadow-overlay transition-transform duration-150 ease-out active:scale-95 disabled:opacity-50 sm:hidden"
+        className="fixed right-4 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-10 flex size-14 items-center justify-center rounded-full bg-linear-to-br from-grad-1 via-grad-2 to-grad-3 text-on-accent shadow-cta-hover transition-transform duration-150 ease-out active:scale-95 disabled:opacity-50 sm:hidden"
       >
         <PlusIcon size={22} />
       </button>

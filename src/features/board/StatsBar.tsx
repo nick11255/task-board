@@ -109,7 +109,7 @@ function ProgressBar({ percent, className }: { percent: number; className?: stri
       className={cx('h-1 overflow-hidden rounded-full bg-column', className)}
     >
       <div
-        className="h-full rounded-full bg-success transition-[width] duration-300 ease-snappy"
+        className="h-full rounded-full bg-linear-to-r from-grad-1 via-grad-2 to-grad-3 transition-[width] duration-300 ease-snappy"
         style={{ width: `${percent}%` }}
       />
     </div>

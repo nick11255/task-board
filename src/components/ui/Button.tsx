@@ -14,11 +14,13 @@ type ButtonProps = ComponentProps<'button'> & {
 
 const base =
   'inline-flex shrink-0 select-none items-center justify-center whitespace-nowrap rounded-md font-medium ' +
-  'transition-[background-color,border-color,color,box-shadow] duration-150 ease-out ' +
+  'transition-[background-color,border-color,color,box-shadow,translate] duration-150 ease-out ' +
   'disabled:pointer-events-none disabled:opacity-50'
 
 const variants: Record<Variant, string> = {
-  primary: 'bg-accent text-on-accent shadow-xs hover:bg-accent-hover',
+  // The shell gradient (one of its three uses). White text stays ≥4.5:1 across it.
+  primary:
+    'bg-linear-to-br from-grad-1 via-grad-2 to-grad-3 text-on-accent shadow-cta hover:-translate-y-px hover:shadow-cta-hover',
   secondary:
     'border border-border bg-surface text-text shadow-xs hover:border-border-strong hover:bg-column',
   ghost: 'text-muted hover:bg-column hover:text-text',
