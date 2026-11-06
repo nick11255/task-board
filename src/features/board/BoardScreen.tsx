@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'r
 import { toast, Toaster } from 'sonner'
 import { AmbientBackground } from '../../components/AmbientBackground'
 import { AppHeader } from '../../components/AppHeader'
-import { BoardTitleText, DEFAULT_BOARD_NAME } from '../../components/BoardTitle'
 import { ThemeToggle } from '../../components/ThemeToggle'
 import { LockIcon, MoreIcon, PlusIcon, TrashIcon, UserIcon } from '../../components/icons'
 import { Menu } from '../../components/ui/Menu'
@@ -11,6 +10,8 @@ import { describeError } from '../../lib/errors'
 import { useTheme } from '../../lib/theme'
 import { MOBILE_QUERY, useMediaQuery } from '../../lib/useMediaQuery'
 import { useToday } from '../../lib/useToday'
+import { EditableBoardTitle } from '../settings/EditableBoardTitle'
+import { useBoardName } from '../settings/useBoardName'
 import { NewTaskDialog } from '../tasks/NewTaskDialog'
 import { TaskPanel } from '../tasks/TaskPanel'
 import { TASK_STATUSES, type Task, type TaskStatus } from '../tasks/types'
@@ -36,6 +37,11 @@ export function BoardScreen({ userId }: { userId: string }) {
   const team = useTeam(userId)
   const [teamOpen, setTeamOpen] = useState(false)
   const [clearOpen, setClearOpen] = useState(false)
+  // Separate table and hook: Clear board never touches the name.
+  const boardName = useBoardName()
+  useEffect(() => {
+    document.title = `${boardName.name} · Playbook`
+  }, [boardName.name])
   const isMobile = useMediaQuery(MOBILE_QUERY)
   const theme = useTheme()
   const [newTaskOpen, setNewTaskOpen] = useState(false)
@@ -148,7 +154,16 @@ export function BoardScreen({ userId }: { userId: string }) {
     <div className="flex h-dvh flex-col">
       <AppHeader
         userId={userId}
-        mobileTitle={DEFAULT_BOARD_NAME}
+        mobileTitle={
+          isMobile ? (
+            <EditableBoardTitle
+              name={boardName.name}
+              loaded={boardName.loaded}
+              onRename={boardName.rename}
+              size="compact"
+            />
+          ) : null
+        }
         actions={
           <>
             <button
@@ -158,7 +173,7 @@ export function BoardScreen({ userId }: { userId: string }) {
               className="inline-flex h-7 items-center gap-2 rounded-full border border-border px-2 text-xs font-medium text-muted transition-colors duration-150 ease-out hover:border-border-strong hover:text-text"
             >
               {team.members.length > 0 ? (
-                <AvatarStack members={team.members} max={3} size="xs" ringClass="ring-bg" />
+                <AvatarStack members={team.members} max={isMobile ? 2 : 3} size="xs" ringClass="ring-bg" />
               ) : (
                 <UserIcon size={12} />
               )}
@@ -197,9 +212,7 @@ export function BoardScreen({ userId }: { userId: string }) {
           ) : (
             <div className="flex flex-wrap items-end gap-x-6 gap-y-4 px-6 pt-6 pb-4">
               <div className="mr-auto min-w-0">
-                <h1 className="font-display text-display text-text">
-                  <BoardTitleText name={DEFAULT_BOARD_NAME} />
-                </h1>
+                <EditableBoardTitle name={boardName.name} loaded={boardName.loaded} onRename={boardName.rename} />
                 <p className="mt-1 flex items-center gap-1 text-sm text-muted">
                   <LockIcon size={12} className="text-subtle" />
                   Private to this browser

@@ -1,5 +1,6 @@
 import type { TaskActivity } from '../features/activity/types'
 import type { Task, TaskInsert, TaskUpdate } from '../features/tasks/types'
+import type { BoardSettings } from '../features/settings/types'
 import type { MemberColor, TaskAssignee, TeamMember } from '../features/team/types'
 
 /**
@@ -28,6 +29,12 @@ export type Database = {
         Row: TeamMember
         Insert: { id?: string; name: string; color?: MemberColor; user_id?: never }
         Update: { name?: string; color?: MemberColor; user_id?: never }
+        Relationships: []
+      }
+      board_settings: {
+        Row: BoardSettings
+        Insert: { board_name: string; user_id?: never }
+        Update: { board_name?: string; user_id?: never }
         Relationships: []
       }
       task_assignees: {
