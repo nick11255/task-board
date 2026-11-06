@@ -1,4 +1,6 @@
-import { useState } from 'react'
+import { useDroppable } from '@dnd-kit/core'
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
+import { useMemo, useState } from 'react'
 import { PlusIcon } from '../../components/icons'
 import { Badge } from '../../components/ui/Badge'
 import { IconButton } from '../../components/ui/IconButton'
@@ -6,7 +8,8 @@ import { describeError } from '../../lib/errors'
 import type { Task } from '../tasks/types'
 import type { ColumnConfig } from './columns'
 import { QuickAdd } from './QuickAdd'
-import { TaskCard, TaskCardSkeleton } from './TaskCard'
+import { cx } from '../../lib/cx'
+import { SortableTaskCard, TaskCardSkeleton } from './TaskCard'
 import type { BoardPhase } from './useBoard'
 
 type ColumnProps = {
@@ -16,15 +19,31 @@ type ColumnProps = {
   pendingIds: ReadonlySet<string>
   /** Skeleton cards to show while loading (varied per column so it doesn't look stamped). */
   skeletonCount: number
+  /** A drag is in progress somewhere on the board. */
+  isDragging: boolean
+  /** The dragged card is currently over this column. */
+  isDropTarget: boolean
   onCreate: (title: string) => Promise<void>
 }
 
 type Composer = { open: false } | { open: true; draft: string; error: string | null }
 
-export function Column({ column, phase, tasks, pendingIds, skeletonCount, onCreate }: ColumnProps) {
+export function Column({
+  column,
+  phase,
+  tasks,
+  pendingIds,
+  skeletonCount,
+  isDragging,
+  isDropTarget,
+  onCreate,
+}: ColumnProps) {
   const headingId = `column-${column.status}`
   const [composer, setComposer] = useState<Composer>({ open: false })
   const canAdd = phase === 'ready'
+  // The column body is a drop zone too, so empty columns accept cards.
+  const { setNodeRef } = useDroppable({ id: column.status })
+  const ids = useMemo(() => tasks.map((t) => t.id), [tasks])
 
   const openComposer = () =>
     setComposer((c) => (c.open ? c : { open: true, draft: '', error: null }))
@@ -44,7 +63,11 @@ export function Column({ column, phase, tasks, pendingIds, skeletonCount, onCrea
   return (
     <section
       aria-labelledby={headingId}
-      className="group/column flex max-h-full w-[85vw] shrink-0 snap-center flex-col rounded-xl bg-column p-2 sm:w-72"
+      className={cx(
+        'group/column flex max-h-full w-[85vw] shrink-0 snap-center flex-col rounded-xl p-2 sm:w-72',
+        'transition-[background-color,box-shadow] duration-150 ease-out',
+        isDropTarget ? 'bg-accent-soft ring-1 ring-accent' : 'bg-column',
+      )}
     >
       <header className="flex h-8 items-center gap-2 pl-2">
         <span aria-hidden className={`size-2 rounded-full ${column.dotClass}`} />
@@ -63,7 +86,10 @@ export function Column({ column, phase, tasks, pendingIds, skeletonCount, onCrea
         )}
       </header>
 
-      <div className="-mx-2 mt-2 flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-2 pb-1">
+      <div
+        ref={setNodeRef}
+        className="-mx-2 mt-2 flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-2 pb-1"
+      >
         {composer.open && (
           <QuickAdd
             columnId={column.status}
@@ -81,18 +107,31 @@ export function Column({ column, phase, tasks, pendingIds, skeletonCount, onCrea
             <TaskCardSkeleton key={i} lines={i % 2 === 0 ? 2 : 1} />
           ))}
 
-        {phase === 'ready' &&
-          tasks.map((task) => <TaskCard key={task.id} task={task} pending={pendingIds.has(task.id)} />)}
+        {phase === 'ready' && (
+          <SortableContext items={ids} strategy={verticalListSortingStrategy}>
+            {tasks.map((task) => (
+              <SortableTaskCard key={task.id} task={task} pending={pendingIds.has(task.id)} />
+            ))}
+          </SortableContext>
+        )}
 
         {phase === 'ready' && tasks.length === 0 && !composer.open && (
-          <ColumnEmpty label={column.label} onAdd={openComposer} />
+          <ColumnEmpty label={column.label} dropping={isDragging} onAdd={openComposer} />
         )}
       </div>
     </section>
   )
 }
 
-function ColumnEmpty({ label, onAdd }: { label: string; onAdd: () => void }) {
+function ColumnEmpty({ label, dropping, onAdd }: { label: string; dropping: boolean; onAdd: () => void }) {
+  if (dropping) {
+    return (
+      <div className="flex h-24 w-full items-center justify-center rounded-lg border border-dashed border-accent text-sm text-accent">
+        Drop here
+      </div>
+    )
+  }
+
   return (
     <button
       type="button"

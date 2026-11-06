@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { toast } from 'sonner'
 import { describeError } from '../../lib/errors'
-import { fetchTasks, insertTask } from '../tasks/api'
-import { topPosition } from '../tasks/position'
+import { fetchTasks, insertTask, updateTask } from '../tasks/api'
+import { planMove, topPosition } from '../tasks/position'
 import type { Task, TaskStatus } from '../tasks/types'
 import { groupTasks } from './groupTasks'
 
@@ -18,6 +19,11 @@ export type Board = {
   reload: () => void
   /** Optimistically adds a task to the top of a column. Rejects if the insert fails (already rolled back). */
   createTask: (status: TaskStatus, title: string) => Promise<void>
+  /**
+   * Optimistically move a task to `index` within `status`. On failure the card
+   * goes back and an error toast explains why.
+   */
+  moveTask: (id: string, status: TaskStatus, index: number) => void
 }
 
 export function useBoard(userId: string): Board {
@@ -118,7 +124,58 @@ export function useBoard(userId: string): Board {
     [userId],
   )
 
+  const moveTask = useCallback((id: string, status: TaskStatus, index: number) => {
+    const current = tasksRef.current
+    const moving = current.find((t) => t.id === id)
+    if (!moving) return
+
+    const destination = current
+      .filter((t) => t.status === status && t.id !== id)
+      .sort((a, b) => a.position - b.position)
+    const updates = planMove(destination, id, index)
+    const byId = new Map(updates.map((u) => [u.id, u.position]))
+
+    // Snapshot exactly what we're about to change, for a precise revert.
+    const snapshot = new Map(
+      current.filter((t) => byId.has(t.id)).map((t) => [t.id, { status: t.status, position: t.position }]),
+    )
+
+    mutationVersion.current++
+    setTasks((prev) =>
+      prev.map((t) => {
+        const position = byId.get(t.id)
+        if (position === undefined) return t
+        return t.id === id ? { ...t, status, position } : { ...t, position }
+      }),
+    )
+
+    // The moved card is one write; a renumber (rare) adds the column's other rows.
+    const writes = updates.map((u) =>
+      updateTask(u.id, u.id === id ? { status, position: u.position } : { position: u.position }),
+    )
+
+    void Promise.all(writes).then(
+      (saved) => {
+        const savedById = new Map(saved.map((t) => [t.id, t]))
+        setTasks((prev) => prev.map((t) => savedById.get(t.id) ?? t))
+      },
+      (err: unknown) => {
+        // Put every touched card back where it was, then say why.
+        setTasks((prev) =>
+          prev.map((t) => {
+            const before = snapshot.get(t.id)
+            return before ? { ...t, ...before } : t
+          }),
+        )
+        const name = moving.title.length > 48 ? `${moving.title.slice(0, 47).trimEnd()}…` : moving.title
+        toast.error(`Couldn't move “${name}”`, {
+          description: `${describeError(err)} The card was put back.`,
+        })
+      },
+    )
+  }, [])
+
   const columns = useMemo(() => groupTasks(tasks), [tasks])
 
-  return { phase, error, tasks, columns, pendingIds, reload, createTask }
+  return { phase, error, tasks, columns, pendingIds, reload, createTask, moveTask }
 }

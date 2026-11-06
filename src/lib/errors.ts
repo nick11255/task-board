@@ -12,6 +12,14 @@ export function describeError(error: unknown): string {
       ? Number((error as { status: unknown }).status)
       : undefined
 
+  const code =
+    typeof error === 'object' && error !== null && 'code' in error
+      ? String((error as { code: unknown }).code)
+      : undefined
+
+  if (code === 'PGRST116') {
+    return 'This task no longer exists. Refresh to see the latest board.'
+  }
   if (/failed to fetch|networkerror|load failed|fetch failed/i.test(message)) {
     return "Can't reach the server. Check your connection and try again."
   }

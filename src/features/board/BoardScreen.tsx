@@ -1,3 +1,5 @@
+import type { CSSProperties } from 'react'
+import { Toaster } from 'sonner'
 import { AppHeader } from '../../components/AppHeader'
 import { PlusIcon } from '../../components/icons'
 import { Button } from '../../components/ui/Button'
@@ -24,6 +26,28 @@ export function BoardScreen({ userId }: { userId: string }) {
 
         <Board board={board} />
       </main>
+
+      <Toaster
+        position="bottom-right"
+        theme="system"
+        closeButton
+        style={
+          {
+            '--normal-bg': 'var(--color-surface)',
+            '--normal-border': 'var(--color-border)',
+            '--normal-text': 'var(--color-text)',
+            '--border-radius': 'var(--radius-lg)',
+            fontFamily: 'var(--font-sans)',
+          } as CSSProperties
+        }
+        toastOptions={{
+          classNames: {
+            toast: 'shadow-overlay! text-sm!',
+            description: 'text-muted!',
+            error: '[&_[data-icon]]:text-danger',
+          },
+        }}
+      />
     </div>
   )
 }
