@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import type { Database } from './database.types'
 import { readEnv } from './env'
 
 // main.tsx checks readEnv() before this module is loaded, so this throw is
@@ -9,7 +10,7 @@ if (!result.ok) {
 }
 
 /** The one Supabase client. Uses the public anon key only; RLS does the rest. */
-export const supabase = createClient(result.env.url, result.env.anonKey, {
+export const supabase = createClient<Database>(result.env.url, result.env.anonKey, {
   auth: {
     persistSession: true, // guest session survives reloads (localStorage)
     autoRefreshToken: true,

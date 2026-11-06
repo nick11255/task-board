@@ -1,7 +1,12 @@
 /** Turn Supabase / network errors into a sentence a user can act on. */
 export function describeError(error: unknown): string {
+  // PostgrestError is a plain object with `message`, not always an Error.
   const message =
-    error instanceof Error ? error.message : typeof error === 'string' ? error : ''
+    typeof error === 'string'
+      ? error
+      : typeof error === 'object' && error !== null && 'message' in error
+        ? String((error as { message: unknown }).message)
+        : ''
   const status =
     typeof error === 'object' && error !== null && 'status' in error
       ? Number((error as { status: unknown }).status)
