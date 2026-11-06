@@ -1,4 +1,4 @@
-import { useState, type CSSProperties } from 'react'
+import { useMemo, useState, type CSSProperties } from 'react'
 import { toast, Toaster } from 'sonner'
 import { AppHeader } from '../../components/AppHeader'
 import { ThemeToggle } from '../../components/ThemeToggle'
@@ -6,12 +6,15 @@ import { LockIcon, PlusIcon } from '../../components/icons'
 import { Button } from '../../components/ui/Button'
 import { useTheme } from '../../lib/theme'
 import { MOBILE_QUERY, useMediaQuery } from '../../lib/useMediaQuery'
+import { useToday } from '../../lib/useToday'
 import { NewTaskDialog } from '../tasks/NewTaskDialog'
 import { TaskPanel } from '../tasks/TaskPanel'
 import { TASK_STATUSES, type TaskStatus } from '../tasks/types'
 import { Board } from './Board'
 import { COLUMNS } from './columns'
 import { MobileTabs } from './MobileTabs'
+import { computeStats } from './stats'
+import { StatsBar, StatsLine } from './StatsBar'
 import { useBoard } from './useBoard'
 
 export function BoardScreen({ userId }: { userId: string }) {
@@ -28,6 +31,8 @@ export function BoardScreen({ userId }: { userId: string }) {
   const counts = ready
     ? (Object.fromEntries(TASK_STATUSES.map((s) => [s, board.columns[s].length])) as Record<TaskStatus, number>)
     : null
+  const today = useToday()
+  const stats = useMemo(() => (ready ? computeStats(board.tasks, today) : null), [ready, board.tasks, today])
 
   // "Move to…" from a card menu. On mobile the card leaves the visible tab,
   // so confirm where it went and offer a jump there.
@@ -51,35 +56,29 @@ export function BoardScreen({ userId }: { userId: string }) {
       />
 
       <main className="mx-auto flex min-h-0 w-full max-w-[88rem] flex-1 flex-col">
-        <div className="flex items-end justify-between gap-4 px-4 pt-4 sm:px-6 sm:pt-6 sm:pb-4">
-          <div className="min-w-0 max-sm:hidden">
-            <h1 className="text-xl font-semibold text-text">My board</h1>
-            <p className="mt-1 flex items-center gap-1 text-sm text-muted">
-              <LockIcon size={12} className="text-subtle" />
-              Private to this browser
-              {counts && (
-                <>
-                  <span aria-hidden className="text-subtle">
-                    ·
-                  </span>
-                  <span className="tabular-nums">
-                    {board.tasks.length} {board.tasks.length === 1 ? 'task' : 'tasks'}
-                  </span>
-                </>
-              )}
-            </p>
+        {isMobile ? (
+          <div className="flex flex-col gap-3 px-4 pt-3">
+            {board.phase !== 'error' && <StatsLine stats={stats} />}
+            <MobileTabs active={mobileTab} counts={counts} onChange={setMobileTab} />
           </div>
-          <Button
-            variant="primary"
-            leadingIcon={<PlusIcon />}
-            onClick={() => setNewTaskOpen(true)}
-            disabled={!ready}
-            className="max-sm:hidden"
-          >
-            New task
-          </Button>
-          {isMobile && <MobileTabs active={mobileTab} counts={counts} onChange={setMobileTab} />}
-        </div>
+        ) : (
+          <div className="flex flex-wrap items-end gap-x-6 gap-y-4 px-6 pt-6 pb-4">
+            <div className="mr-auto min-w-0">
+              <h1 className="text-xl font-semibold text-text">My board</h1>
+              <p className="mt-1 flex items-center gap-1 text-sm text-muted">
+                <LockIcon size={12} className="text-subtle" />
+                Private to this browser
+              </p>
+            </div>
+            {/* Below lg the stats take their own full-width row under the title. */}
+            {board.phase !== 'error' && (
+              <StatsBar stats={stats} className="order-last w-full lg:order-none lg:w-auto" />
+            )}
+            <Button variant="primary" leadingIcon={<PlusIcon />} onClick={() => setNewTaskOpen(true)} disabled={!ready}>
+              New task
+            </Button>
+          </div>
+        )}
 
         <Board
           board={board}
