@@ -38,6 +38,16 @@ export function UserIcon(props: IconProps) {
   )
 }
 
+export function AlertIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <circle cx="8" cy="8" r="6" />
+      <path d="M8 5v3.5" />
+      <path d="M8 11h.01" strokeWidth={2} />
+    </Icon>
+  )
+}
+
 /** Brand mark: three stacked bars, a nod to board columns. */
 export function LogoMark({ size = 24 }: { size?: number }) {
   return (
