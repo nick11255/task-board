@@ -11,6 +11,7 @@ import { COLUMNS } from './columns'
 import { TaskCard } from './TaskCard'
 import type { Board as BoardState } from './useBoard'
 import { useBoardDnd } from './useBoardDnd'
+import type { TaskStatus } from '../tasks/types'
 
 const SKELETON_COUNTS = [3, 2, 1, 2] as const
 
@@ -20,8 +21,17 @@ const dropAnimation: DropAnimation = {
   sideEffects: defaultDropAnimationSideEffects({ styles: { active: { opacity: '0.4' } } }),
 }
 
-export function Board({ board, onOpenTask }: { board: BoardState; onOpenTask: (id: string) => void }) {
+type BoardProps = {
+  board: BoardState
+  onOpenTask: (id: string) => void
+  onMoveTo: (id: string, status: TaskStatus) => void
+  /** Mobile shows one column at a time (picked with status tabs). */
+  singleColumn: TaskStatus | null
+}
+
+export function Board({ board, onOpenTask, onMoveTo, singleColumn }: BoardProps) {
   const dnd = useBoardDnd(board)
+  const visible = singleColumn ? COLUMNS.filter((c) => c.status === singleColumn) : COLUMNS
 
   return (
     <>
@@ -39,19 +49,21 @@ export function Board({ board, onOpenTask }: { board: BoardState; onOpenTask: (i
         {...dnd.handlers}
       >
         <div className="min-h-0 flex-1 overflow-x-auto overscroll-x-contain">
-          <div className="flex h-full snap-x snap-mandatory scroll-px-4 items-start gap-4 px-4 pb-6 sm:snap-none sm:px-6">
-            {COLUMNS.map((column, i) => (
+          <div className="flex h-full items-start gap-3 px-4 pb-4 sm:px-6 sm:pb-6">
+            {visible.map((column) => (
               <Column
                 key={column.status}
                 column={column}
+                layout={singleColumn ? 'single' : 'board'}
                 phase={board.phase}
                 tasks={dnd.columns[column.status]}
                 pendingIds={board.pendingIds}
-                skeletonCount={SKELETON_COUNTS[i] ?? 2}
+                skeletonCount={SKELETON_COUNTS[COLUMNS.indexOf(column)] ?? 2}
                 isDragging={dnd.activeTask !== null}
                 isDropTarget={dnd.overColumn === column.status}
                 onCreate={(title) => board.createTask({ status: column.status, title })}
                 onOpenTask={onOpenTask}
+                onMoveTo={onMoveTo}
               />
             ))}
           </div>

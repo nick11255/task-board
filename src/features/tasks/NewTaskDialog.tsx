@@ -15,21 +15,27 @@ type NewTaskDialogProps = {
   open: boolean
   onClose: () => void
   onCreate: (input: NewTask) => Promise<void>
+  /** Pre-selected column (e.g. the tab you're on, on mobile). */
+  defaultStatus?: TaskStatus
 }
 
-export function NewTaskDialog({ open, onClose, onCreate }: NewTaskDialogProps) {
+export function NewTaskDialog({ open, onClose, onCreate, defaultStatus = 'todo' }: NewTaskDialogProps) {
   return (
     <Dialog open={open} onClose={onClose} labelledBy="new-task-title">
       {/* Mounted only while open, so every open starts with a fresh form. */}
-      <NewTaskForm onClose={onClose} onCreate={onCreate} />
+      <NewTaskForm onClose={onClose} onCreate={onCreate} defaultStatus={defaultStatus} />
     </Dialog>
   )
 }
 
-function NewTaskForm({ onClose, onCreate }: Omit<NewTaskDialogProps, 'open'>) {
+function NewTaskForm({
+  onClose,
+  onCreate,
+  defaultStatus,
+}: Omit<NewTaskDialogProps, 'open' | 'defaultStatus'> & { defaultStatus: TaskStatus }) {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
-  const [status, setStatus] = useState<TaskStatus>('todo')
+  const [status, setStatus] = useState<TaskStatus>(defaultStatus)
   const [priority, setPriority] = useState<TaskPriority>('normal')
   const [dueDate, setDueDate] = useState('')
   const [submitted, setSubmitted] = useState(false)

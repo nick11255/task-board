@@ -18,14 +18,16 @@
   --color-*: initial;
 
   /* Neutrals */
-  --color-bg: light-dark(#fafafb, #0f1011);
-  --color-column: light-dark(#f3f4f6, #16171a);
-  --color-surface: light-dark(#ffffff, #1c1d21);
-  --color-border: light-dark(#e5e7eb, #26282d);
-  --color-border-strong: light-dark(#d1d5db, #34363c);
-  --color-text: light-dark(#18181b, #edeef0);
-  --color-muted: light-dark(#6b7280, #9a9ca3);
-  --color-subtle: light-dark(#9ca3af, #6b6e76);
+  /* Dark mode is three clear steps of lift: bg → column → card. */
+  --color-bg: light-dark(#fafafb, #0b0c0e);
+  --color-column: light-dark(#f3f4f6, #131417);
+  --color-surface: light-dark(#ffffff, #1e2024);
+  --color-surface-hover: light-dark(#fcfcfd, #23252a);
+  --color-border: light-dark(#e5e7eb, #2c2e34);
+  --color-border-strong: light-dark(#d1d5db, #3d4048);
+  --color-text: light-dark(#18181b, #eeeff1);
+  --color-muted: light-dark(#6b7280, #a0a3ab);
+  --color-subtle: light-dark(#9ca3af, #6f727b);
 
   /* The one brand accent */
   --color-accent: light-dark(#5e6ad2, #7c86e8);
@@ -65,9 +67,16 @@
   --radius-xl: 12px;
 
   /* Elevation */
-  --shadow-xs: 0 1px 2px light-dark(rgb(16 24 40 / 0.04), rgb(0 0 0 / 0.3));
-  --shadow-sm: 0 2px 6px light-dark(rgb(16 24 40 / 0.06), rgb(0 0 0 / 0.4));
-  --shadow-overlay: 0 12px 24px -6px light-dark(rgb(16 24 40 / 0.18), rgb(0 0 0 / 0.6));
+  /* In dark mode a 1px inner top highlight reads as a lit edge (Linear-style). */
+  --shadow-xs:
+    0 1px 2px light-dark(rgb(16 24 40 / 0.05), rgb(0 0 0 / 0.5)),
+    inset 0 1px 0 light-dark(rgb(255 255 255 / 0), rgb(255 255 255 / 0.04));
+  --shadow-sm:
+    0 2px 6px light-dark(rgb(16 24 40 / 0.08), rgb(0 0 0 / 0.55)),
+    inset 0 1px 0 light-dark(rgb(255 255 255 / 0), rgb(255 255 255 / 0.06));
+  --shadow-overlay:
+    0 16px 32px -8px light-dark(rgb(16 24 40 / 0.2), rgb(0 0 0 / 0.7)),
+    0 0 0 1px light-dark(rgb(16 24 40 / 0.04), rgb(255 255 255 / 0.06));
 
   /* Motion */
   --ease-snappy: cubic-bezier(0.2, 0, 0, 1);

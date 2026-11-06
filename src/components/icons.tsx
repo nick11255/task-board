@@ -89,6 +89,51 @@ export function ChevronDownIcon(props: IconProps) {
   )
 }
 
+export function SunIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <circle cx="8" cy="8" r="2.75" />
+      <path d="M8 1.75v1.5M8 12.75v1.5M1.75 8h1.5M12.75 8h1.5M3.6 3.6l1.05 1.05M11.35 11.35l1.05 1.05M3.6 12.4l1.05-1.05M11.35 4.65l1.05-1.05" />
+    </Icon>
+  )
+}
+
+export function MoonIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M13.25 9.6A5.5 5.5 0 0 1 6.4 2.75a5.5 5.5 0 1 0 6.85 6.85Z" />
+    </Icon>
+  )
+}
+
+export function MonitorIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <rect x="2" y="2.75" width="12" height="8.5" rx="1.5" />
+      <path d="M5.5 14h5M8 11.25V14" />
+    </Icon>
+  )
+}
+
+export function MoreIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <circle cx="3.5" cy="8" r="0.75" fill="currentColor" />
+      <circle cx="8" cy="8" r="0.75" fill="currentColor" />
+      <circle cx="12.5" cy="8" r="0.75" fill="currentColor" />
+    </Icon>
+  )
+}
+
+export function LockIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <rect x="3.5" y="7" width="9" height="6.5" rx="1.5" />
+      <path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2" />
+    </Icon>
+  )
+}
+
 /** Signal-bar priority glyph: 1, 2 or 3 filled bars for low, normal, high. */
 export function PriorityIcon({
   level,

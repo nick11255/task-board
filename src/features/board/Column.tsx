@@ -2,13 +2,13 @@ import { useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { useMemo, useState } from 'react'
 import { PlusIcon } from '../../components/icons'
-import { Badge } from '../../components/ui/Badge'
 import { IconButton } from '../../components/ui/IconButton'
+import { cx } from '../../lib/cx'
 import { describeError } from '../../lib/errors'
-import type { Task } from '../tasks/types'
+import type { Task, TaskStatus } from '../tasks/types'
 import type { ColumnConfig } from './columns'
 import { QuickAdd } from './QuickAdd'
-import { cx } from '../../lib/cx'
+import { StatusIcon } from './StatusIcon'
 import { SortableTaskCard, TaskCardSkeleton } from './TaskCard'
 import type { BoardPhase } from './useBoard'
 
@@ -23,8 +23,11 @@ type ColumnProps = {
   isDragging: boolean
   /** The dragged card is currently over this column. */
   isDropTarget: boolean
+  /** 'single' = the only column on screen (mobile tabs): full width, no header. */
+  layout: 'board' | 'single'
   onCreate: (title: string) => Promise<void>
   onOpenTask: (id: string) => void
+  onMoveTo: (id: string, status: TaskStatus) => void
 }
 
 type Composer = { open: false } | { open: true; draft: string; error: string | null }
@@ -37,15 +40,18 @@ export function Column({
   skeletonCount,
   isDragging,
   isDropTarget,
+  layout,
   onCreate,
   onOpenTask,
+  onMoveTo,
 }: ColumnProps) {
   const headingId = `column-${column.status}`
   const [composer, setComposer] = useState<Composer>({ open: false })
-  const canAdd = phase === 'ready'
   // The column body is a drop zone too, so empty columns accept cards.
   const { setNodeRef } = useDroppable({ id: column.status })
   const ids = useMemo(() => tasks.map((t) => t.id), [tasks])
+  const isEmpty = phase === 'ready' && tasks.length === 0
+  const single = layout === 'single'
 
   const openComposer = () =>
     setComposer((c) => (c.open ? c : { open: true, draft: '', error: null }))
@@ -64,33 +70,42 @@ export function Column({
 
   return (
     <section
-      aria-labelledby={headingId}
+      id={single ? 'mobile-column-panel' : undefined}
+      role={single ? 'tabpanel' : undefined}
+      aria-labelledby={single ? `tab-${column.status}` : headingId}
       className={cx(
-        'group/column flex max-h-full w-[85vw] shrink-0 snap-center flex-col rounded-xl p-2 sm:w-72',
-        'transition-[background-color,box-shadow] duration-150 ease-out',
-        isDropTarget ? 'bg-accent-soft ring-1 ring-accent' : 'bg-column',
+        'group/column flex max-h-full flex-col transition-[background-color,box-shadow] duration-150 ease-out',
+        // Board columns run the full height (a stable grid), and scroll inside.
+        single ? 'w-full' : 'min-w-[17rem] flex-1 basis-0 self-stretch rounded-xl p-2',
+        !single && (isDropTarget ? 'bg-accent-soft ring-1 ring-accent' : 'bg-column'),
       )}
     >
-      <header className="flex h-8 items-center gap-2 pl-2">
-        <span aria-hidden className={`size-2 rounded-full ${column.dotClass}`} />
-        <h2 id={headingId} className="text-base font-semibold text-text">
-          {column.label}
-        </h2>
-        {phase === 'ready' && <Badge>{tasks.length}</Badge>}
-        {canAdd && (
-          <IconButton
-            label={`Add task to ${column.label}`}
-            icon={<PlusIcon />}
-            size="sm"
-            onClick={openComposer}
-            className="ml-auto opacity-0 group-hover/column:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100"
-          />
-        )}
-      </header>
+      {!single && (
+        <header className="flex h-8 items-center gap-2 pr-1 pl-2">
+          <StatusIcon status={column.status} />
+          <h2 id={headingId} className="text-sm font-semibold text-text">
+            {column.label}
+          </h2>
+          {phase === 'ready' && <span className="text-sm text-subtle tabular-nums">{tasks.length}</span>}
+          {/* Empty columns get their own "Add task" row instead, so there's one action. */}
+          {phase === 'ready' && !isEmpty && (
+            <IconButton
+              label={`Add task to ${column.label}`}
+              icon={<PlusIcon />}
+              size="sm"
+              onClick={openComposer}
+              className="ml-auto opacity-0 group-hover/column:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100"
+            />
+          )}
+        </header>
+      )}
 
       <div
         ref={setNodeRef}
-        className="-mx-2 mt-2 flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-2 pb-1"
+        className={cx(
+          'flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto',
+          single ? 'pb-28' : '-mx-2 mt-2 px-2 pb-1',
+        )}
       >
         {composer.open && (
           <QuickAdd
@@ -117,23 +132,46 @@ export function Column({
                 task={task}
                 pending={pendingIds.has(task.id)}
                 onOpen={onOpenTask}
+                onMoveTo={onMoveTo}
               />
             ))}
           </SortableContext>
         )}
 
-        {phase === 'ready' && tasks.length === 0 && !composer.open && (
-          <ColumnEmpty label={column.label} dropping={isDragging} onAdd={openComposer} />
-        )}
+        {isEmpty && !composer.open &&
+          (single && !isDragging ? (
+            <TabEmpty column={column} onAdd={openComposer} />
+          ) : (
+            <ColumnEmpty label={column.label} dropping={isDragging} onAdd={openComposer} />
+          ))}
       </div>
     </section>
   )
 }
 
+/** Phone tab with nothing in it: centered, quiet, one action. */
+function TabEmpty({ column, onAdd }: { column: ColumnConfig; onAdd: () => void }) {
+  return (
+    <div className="flex flex-col items-center px-6 pt-16 text-center">
+      <StatusIcon status={column.status} size={20} />
+      <p className="mt-3 text-sm font-medium text-text">Nothing in {column.label}</p>
+      <button
+        type="button"
+        onClick={onAdd}
+        className="mt-3 inline-flex h-8 items-center gap-1 rounded-md px-3 text-sm font-medium text-accent transition-colors duration-150 ease-out hover:bg-accent-soft"
+      >
+        <PlusIcon size={14} />
+        Add task
+      </button>
+    </div>
+  )
+}
+
+/** One quiet action; turns into a drop slot while a card is being dragged. */
 function ColumnEmpty({ label, dropping, onAdd }: { label: string; dropping: boolean; onAdd: () => void }) {
   if (dropping) {
     return (
-      <div className="flex h-24 w-full items-center justify-center rounded-lg border border-dashed border-accent text-sm text-accent">
+      <div className="flex h-10 items-center justify-center rounded-lg border border-dashed border-accent text-xs font-medium text-accent">
         Drop here
       </div>
     )
@@ -143,13 +181,11 @@ function ColumnEmpty({ label, dropping, onAdd }: { label: string; dropping: bool
     <button
       type="button"
       onClick={onAdd}
-      aria-label={`No tasks in ${label}. Add a task`}
-      className="group/empty flex h-24 w-full flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-border-strong text-sm text-subtle transition-colors duration-150 hover:border-accent hover:text-accent"
+      aria-label={`No tasks in ${label}. Add task`}
+      className="flex h-10 w-full items-center gap-2 rounded-lg px-2 text-sm text-subtle transition-colors duration-150 ease-out hover:bg-surface hover:text-text"
     >
-      <span>No tasks</span>
-      <span className="flex items-center gap-1 text-xs opacity-0 transition-opacity duration-150 group-hover/empty:opacity-100 group-focus-visible/empty:opacity-100 [@media(hover:none)]:opacity-100">
-        <PlusIcon size={12} /> Add task
-      </span>
+      <PlusIcon size={14} />
+      Add task
     </button>
   )
 }

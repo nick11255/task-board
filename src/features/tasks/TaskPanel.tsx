@@ -10,6 +10,7 @@ import { cx } from '../../lib/cx'
 import { formatTimestamp } from '../../lib/dates'
 import { describeError } from '../../lib/errors'
 import { COLUMNS } from '../board/columns'
+import { StatusIcon } from '../board/StatusIcon'
 import type { TaskEdit } from '../board/useBoard'
 import { DueDateInput, PriorityPicker, StatusSelect } from './TaskFields'
 import { DESCRIPTION_MAX_LENGTH, TITLE_MAX_LENGTH, type Task, type TaskStatus } from './types'
@@ -139,7 +140,7 @@ function PanelContent({ task, onClose, onUpdate, onMove, onDelete, flushRef }: P
   return (
     <div className="flex h-full flex-col">
       <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border px-4 sm:px-6">
-        <span aria-hidden className={cx('size-2 rounded-full', column?.dotClass)} />
+        <StatusIcon status={task.status} />
         <span className="text-sm text-muted">{column?.label}</span>
         <div className="ml-auto flex items-center gap-2">
           {saving > 0 && (
